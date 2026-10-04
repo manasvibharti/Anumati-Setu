@@ -117,9 +117,25 @@ router.post("/", async (req, res) => {
   }
 });
 
-// PATCH /api/applications/:id/status
+const { evaluateReadinessGate } = require("../services/readinessGate");
+
+// GET /api/applications/:id/readiness-gate (Check if ready to submit)
+router.get("/:id/readiness-gate", async (req, res) => {
+  try {
+    const app = await Approval.findOne({ userId: req.user.id, id: req.params.id });
+    if (!app) return res.status(404).json({ error: "Application not found" });
+
+    const gateResult = await evaluateReadinessGate(req.user.id, app);
+    res.json(gateResult);
+  } catch (err) {
+    console.error("[Readiness Gate GET]", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/applications/:id/status (With Server-Side Readiness Enforcement on Submit)
 router.patch("/:id/status", async (req, res) => {
-  const { status, clarificationMessage, inspectionDate, notes } = req.body;
+  const { status, clarificationMessage, inspectionDate, notes, forceSubmit } = req.body;
   const appId = req.params.id;
 
   if (!status) return res.status(400).json({ error: "status is required" });
@@ -128,12 +144,25 @@ router.patch("/:id/status", async (req, res) => {
     const app = await Approval.findOne({ userId: req.user.id, id: appId });
     if (!app) return res.status(404).json({ error: "Application not found" });
 
-    const oldStatus = app.status;
-    app.status = status;
+    // SERVER-SIDE READINESS GATE ENFORCEMENT (§5)
+    if (status === "SUBMITTED" && app.status !== "SUBMITTED") {
+      const gate = await evaluateReadinessGate(req.user.id, app);
+      if (!gate.isReady && !forceSubmit) {
+        return res.status(422).json({
+          error: "Document Readiness Gate Failed: License cannot be submitted until all mandatory documents are uploaded and verified.",
+          gate
+        });
+      }
 
-    const today = todayStr();
-    if (status === "SUBMITTED" && !app.submittedDate) {
-      app.submittedDate = today;
+      // Freeze verified document set into a versioned submitted packet
+      app.submittedPacket = {
+        frozenAt: new Date().toISOString(),
+        applicantId: req.user.id,
+        requirementCode: app.requirementCode,
+        documents: gate.checkedDocs,
+        totalDocuments: gate.checkedCount
+      };
+      app.submittedDate = todayStr();
     }
     if (clarificationMessage !== undefined) {
       app.clarificationMessage = clarificationMessage || null;

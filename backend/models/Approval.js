@@ -19,6 +19,10 @@ const approvalSchema = new mongoose.Schema({
   clarificationMessage: { type: String, default: null },
   notes: { type: String, default: "" },
   documentsAttached: { type: [String], default: [] },
+  submittedPacket: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
   authorityId: { type: String, default: null }
 }, { timestamps: true });
 

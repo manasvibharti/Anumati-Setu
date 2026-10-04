@@ -10,6 +10,7 @@
     "dev": "concurrently \"node backend/server.js\" \"npx serve frontend -p 3000\""
   },
   "dependencies": {
+    "@google/genai": "^2.27.0",
     "concurrently": "^8.2.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

@@ -369,31 +369,17 @@ const ApiService = {
           headers: this.getAuthHeaders()
         });
         if (res.ok) {
-          return await res.json();
+          const data = await res.json();
+          if (data && data.user) {
+            if (typeof AlgoAccounts !== "undefined" && typeof AlgoAccounts.registerActiveSession === "function") {
+              AlgoAccounts.registerActiveSession(data.user, token, data.profile);
+            }
+            return data;
+          }
+        } else if (res.status === 401) {
+          this.setToken(null);
         }
       } catch (e) {}
-    }
-    // Seamless fallback to active local enterprise profile
-    if (typeof AlgoAccounts !== "undefined" && typeof AlgoAccounts.getActiveAccount === "function") {
-      const activeAcc = AlgoAccounts.getActiveAccount();
-      if (activeAcc) {
-        return {
-          user: {
-            id: activeAcc.id,
-            email: activeAcc.email,
-            businessName: activeAcc.companyName,
-            userName: activeAcc.userName
-          },
-          profile: {
-            businessName: activeAcc.companyName,
-            state: activeAcc.state,
-            industryType: activeAcc.industryType,
-            isComplete: true,
-            employeesCount: activeAcc.employeesCount,
-            powerLoad: activeAcc.powerLoad
-          }
-        };
-      }
     }
     return null;
   },
@@ -2179,133 +2165,11 @@ async function handleRenewLicenseAction(renewalId) {
 // 5. Multi-Account Management & Business Profile Hub (AlgoAccounts)
 // ----------------------------------------------------------------------------
 const AlgoAccounts = {
-  STORAGE_KEY: "anumatisetu_accounts_v4",
-  ACTIVE_ID_KEY: "anumatisetu_active_acc_id_v4",
+  STORAGE_KEY: "anumatisetu_accounts_v5",
+  ACTIVE_ID_KEY: "anumatisetu_active_acc_id_v5",
 
   getDefaultAccounts() {
-    return [
-      {
-        id: "acc_aarav",
-        userName: "Aarav Sharma",
-        email: "aarav.sharma@shaktiprecision.in",
-        initials: "AS",
-        companyName: "Shakti Precision Pvt. Ltd.",
-        constitution: "Private Limited Company",
-        industryType: "Manufacturing",
-        sectorBadge: "● Manufacturing & Engineering",
-        nicCode: "25910 · Forging & pressing",
-        incorporationDate: "18 September 2020",
-        unitName: "Chakan Manufacturing Unit",
-        unitBadge: "Primary unit",
-        unitAddress: "Plot B-42, Phase II, Chakan MIDC, Pune 410501",
-        state: "Maharashtra",
-        landArea: "8,400 sq. m.",
-        employeesCount: 146,
-        powerLoad: "450 kW",
-        shiftPattern: "Two shifts",
-        operationsDesc: "Machining & finishing",
-        completionPct: 82,
-        registrations: [
-          { name: "Corporate Identification Number", code: "CIN", value: "U28999MH2020PTC349812", status: "Verified" },
-          { name: "Goods & Services Tax", code: "GSTIN", value: "27AAHCS4821P1Z7", status: "Verified" },
-          { name: "Udyam Registration", code: "UDYAM", value: "UDYAM-MH-19-0084217", status: "Verified" },
-          { name: "Importer Exporter Code", code: "IEC", value: "0319087426", status: "Review needed" }
-        ],
-        stats: { approvals: 12, inProgress: 5, dueSoon: 3 },
-        applications: [
-          { ref: "AS-FIR-260184", title: "Fire No Objection Certificate", dept: "Fire & Emergency Services, Maharashtra", status: "Under review", date: "14 Sep 2026", update: "Documents have been accepted for technical review. Site inspection scheduled." },
-          { ref: "AS-FAC-260127", title: "Factory Licence", dept: "Industrial Safety Directorate, Maharashtra", status: "Action required", date: "17 Sep 2026", update: "Clarification required regarding high-pressure boiler layout schematics. Please respond within 7 days." },
-          { ref: "AS-PCB-260098", title: "Consent to Operate (CTO)", dept: "Maharashtra Pollution Control Board", status: "Submitted", date: "09 Sep 2026", update: "Application submitted and registered with MPCB portal. Scrutiny in progress." },
-          { ref: "AS-BLD-260076", title: "Building Plan Approval", dept: "Maharashtra Industrial Development Corporation", status: "Action required", date: "08 Sep 2026", update: "Architectural fire egress drawing revision requested." },
-          { ref: "AS-GST-260012", title: "GST Registration", dept: "Goods & Services Tax Department", status: "Approved", date: "03 Aug 2026", update: "GSTIN 27AAHCS4821P1Z7 issued successfully." },
-          { ref: "AS-PWR-259981", title: "HT Power Sanction", dept: "MSEDCL Maharashtra", status: "Approved", date: "27 Jul 2026", update: "450 kW connected industrial load approved and energized." }
-        ],
-        documents: [],
-        renewals: [
-          { title: "Consent to Operate (Air & Water)", dept: "Pollution Control Board", permitNo: "MPCB/CTO/2024/774", expiry: "28 Oct 2026", validity: "3 Years", status: "DUE_SOON" },
-          { title: "Fire Safety Certificate", dept: "Fire & Emergency Services", permitNo: "NOC/MH/PUN/2023/104", expiry: "15 Nov 2026", validity: "3 Years", status: "DUE_SOON" },
-          { title: "Factory Operating License", dept: "Directorate of Industrial Safety", permitNo: "FAC-MH-44021", expiry: "12 Dec 2026", validity: "5 Years", status: "ACTIVE" }
-        ]
-      },
-      {
-        id: "acc_priya",
-        userName: "Dr. Priya Patel",
-        email: "priya.patel@zenithbio.com",
-        initials: "PP",
-        companyName: "Zenith Biopharma Chemicals Ltd.",
-        constitution: "Public Limited Company",
-        industryType: "Chemicals",
-        sectorBadge: "● Chemicals & Hazmat",
-        nicCode: "20119 · Organic chemicals & API synthesis",
-        incorporationDate: "04 June 2018",
-        unitName: "Dahej Hazmat & Synthesis Plant",
-        unitBadge: "SEZ Unit",
-        unitAddress: "Plot C-14, Dahej SEZ-II, Bharuch, Gujarat 392130",
-        state: "Gujarat",
-        landArea: "24,000 sq. m.",
-        employeesCount: 230,
-        powerLoad: "1,200 kW",
-        shiftPattern: "Three continuous shifts",
-        operationsDesc: "Chemical synthesis & distillation",
-        completionPct: 94,
-        registrations: [
-          { name: "Corporate Identification Number", code: "CIN", value: "L24239GJ2018PLC098214", status: "Verified" },
-          { name: "Goods & Services Tax", code: "GSTIN", value: "24AAACZ4928M1ZW", status: "Verified" },
-          { name: "Udyam Registration", code: "UDYAM", value: "UDYAM-GJ-06-0041289", status: "Verified" },
-          { name: "PESO Chemical Storage", code: "PESO", value: "PESO/WZ/2023/4412", status: "Verified" }
-        ],
-        stats: { approvals: 16, inProgress: 4, dueSoon: 2 },
-        applications: [
-          { ref: "ZB-PESO-89104", title: "PESO Petroleum & Hazchem License", dept: "Petroleum & Explosives Safety Organisation", status: "Under review", date: "20 Sep 2026", update: "Storage tank hydro-test inspection and flameproof reports approved. Final certificate drafting." },
-          { ref: "ZB-HAZ-89021", title: "Hazardous Waste TSDF Authorization", dept: "Gujarat Pollution Control Board", status: "Approved", date: "15 Sep 2026", update: "TSDF membership authorization granted for 5 years." },
-          { ref: "ZB-DISH-88940", title: "Section 41 Hazardous Process Safety Clearance", dept: "DISH Gujarat", status: "Under review", date: "10 Sep 2026", update: "Quantitative Risk Assessment (QRA) under review by Site Appraisal Committee." },
-          { ref: "ZB-BOI-88710", title: "High-Pressure Steam Boiler Registration", dept: "Directorate of Steam Boilers, Gujarat", status: "Approved", date: "01 Aug 2026", update: "IBR boiler certificate issued valid till Aug 2027." }
-        ],
-        documents: [],
-        renewals: [
-          { title: "PESO Hazchem Storage Permit", dept: "Petroleum & Explosives Safety", permitNo: "PESO/GJ/8821", expiry: "30 Nov 2026", validity: "3 Years", status: "DUE_SOON" },
-          { title: "GPCB Hazardous Waste Authorization", dept: "State Pollution Control Board", permitNo: "GPCB/HAZ/2021", expiry: "18 Dec 2026", validity: "5 Years", status: "ACTIVE" }
-        ]
-      },
-      {
-        id: "acc_rajesh",
-        userName: "Rajesh Mehta",
-        email: "rajesh.mehta@apexagro.in",
-        initials: "RM",
-        companyName: "Apex Agro Foods & Cold Storage LLP",
-        constitution: "Limited Liability Partnership",
-        industryType: "Food Processing",
-        sectorBadge: "● Food Processing & Agro",
-        nicCode: "10300 · Processing of fruit and vegetables",
-        incorporationDate: "12 February 2021",
-        unitName: "Nashik Perishable Cold Chain Park",
-        unitBadge: "Agro Cluster",
-        unitAddress: "Survey 88/2, Dindori Mega Food Park, Nashik 422202",
-        state: "Maharashtra",
-        landArea: "12,500 sq. m.",
-        employeesCount: 85,
-        powerLoad: "320 kW",
-        shiftPattern: "Two shifts + continuous chill",
-        operationsDesc: "Cold storage, grading & packaging",
-        completionPct: 88,
-        registrations: [
-          { name: "Limited Liability Partnership Reg", code: "LLPIN", value: "AAE-8912", status: "Verified" },
-          { name: "Goods & Services Tax", code: "GSTIN", value: "27AABFA9104K1Z2", status: "Verified" },
-          { name: "FSSAI Food Business License", code: "FSSAI", value: "11522038000492", status: "Verified" },
-          { name: "Udyam MSME Registration", code: "UDYAM", value: "UDYAM-MH-20-0019482", status: "Verified" }
-        ],
-        stats: { approvals: 10, inProgress: 3, dueSoon: 1 },
-        applications: [
-          { ref: "APX-FSSAI-3104", title: "FSSAI Central Manufacturing License", dept: "Food Safety and Standards Authority", status: "Approved", date: "18 Sep 2026", update: "FSMS audit verified and license generated for 5 years." },
-          { ref: "APX-COLD-3091", title: "Perishable Cold Storage Telemetry NOC", dept: "State Agriculture & Horticulture", status: "Under review", date: "12 Sep 2026", update: "Temperature data telemetry linked to portal." },
-          { ref: "APX-AGM-3042", title: "AGMARK Quality Grading & Certification", dept: "Directorate of Marketing & Inspection", status: "Under review", date: "05 Sep 2026", update: "Chemist approval letter submitted." }
-        ],
-        documents: [],
-        renewals: [
-          { title: "FSSAI Food Safety License", dept: "Food Safety Authority of India", permitNo: "FSSAI/11522038000492", expiry: "05 Nov 2026", validity: "5 Years", status: "DUE_SOON" }
-        ]
-      }
-    ];
+    return [];
   },
 
   getAllAccounts() {
@@ -2315,6 +2179,7 @@ const AlgoAccounts = {
         localStorage.removeItem("anumatisetu_accounts_v1");
         localStorage.removeItem("anumatisetu_accounts_v2");
         localStorage.removeItem("anumatisetu_accounts_v3");
+        localStorage.removeItem("anumatisetu_accounts_v4");
         localStorage.removeItem("anumati_accounts");
       } catch (e) {}
 
@@ -2324,7 +2189,6 @@ const AlgoAccounts = {
         if (Array.isArray(parsed)) {
           parsed.forEach(acc => {
             if (!acc.documents) acc.documents = [];
-            // Strictly retain only user-uploaded documents (remove legacy mock records)
             acc.documents = acc.documents.filter(d => 
               !d.isBaseline && 
               !String(d.id || '').startsWith("DOC-BASE") && 
@@ -2336,9 +2200,7 @@ const AlgoAccounts = {
         }
       }
     } catch (e) {}
-    const defaults = this.getDefaultAccounts();
-    this.saveAllAccounts(defaults);
-    return defaults;
+    return [];
   },
 
   saveAllAccounts(accounts) {
@@ -2348,21 +2210,95 @@ const AlgoAccounts = {
   },
 
   getActiveAccountId() {
-    return localStorage.getItem(this.ACTIVE_ID_KEY) || "acc_aarav";
+    return localStorage.getItem(this.ACTIVE_ID_KEY) || null;
   },
 
   getActiveAccount() {
     const accounts = this.getAllAccounts();
+    if (!accounts || accounts.length === 0) return null;
     const activeId = this.getActiveAccountId();
-    return accounts.find(a => a.id === activeId) || accounts[0];
+    return accounts.find(a => a.id === activeId) || accounts[0] || null;
+  },
+
+  registerActiveSession(user, token, profile) {
+    if (!user) return;
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    }
+    const accId = user.id || user._id || ("acc_" + Date.now());
+    const nameStr = user.name || user.businessName || "Compliance Executive";
+    const initials = nameStr.split(" ").filter(Boolean).map(p => p[0]).join("").substring(0, 2).toUpperCase() || "AS";
+    const companyStr = profile?.companyName || user.businessName || "Enterprise Workspace";
+
+    const newAcc = {
+      id: accId,
+      token: token || localStorage.getItem(TOKEN_KEY) || "",
+      userName: nameStr,
+      email: user.email || "",
+      phone: user.phone || "",
+      initials: initials,
+      companyName: companyStr,
+      constitution: profile?.legalStructure || "Private Limited",
+      industryType: profile?.industryCategory || "Manufacturing",
+      sectorBadge: `● ${profile?.industryCategory || "Manufacturing"}`,
+      nicCode: profile?.nicCode || "General Industrial",
+      incorporationDate: profile?.incorporationYear ? String(profile.incorporationYear) : "2026",
+      unitName: `${companyStr.split(" ")[0]} Main Facility`,
+      unitBadge: "Primary Unit",
+      unitAddress: profile?.plantAddress || (profile?.state ? `Industrial Zone, ${profile.state}` : "Industrial Area"),
+      state: profile?.state || "Maharashtra",
+      landArea: profile?.landAreaSqM ? `${profile.landAreaSqM} sq. m.` : "5,000 sq. m.",
+      employeesCount: profile?.employeesCount || 50,
+      powerLoad: profile?.powerLoadKw ? `${profile.powerLoadKw} kW` : "150 kW",
+      shiftPattern: "Two shifts",
+      operationsDesc: profile?.businessActivity || "Industrial Operations",
+      completionPct: 85,
+      registrations: [
+        ...(user.cin ? [{ name: "Corporate Identification Number", code: "CIN", value: user.cin, status: "Verified" }] : []),
+        ...(user.gstin ? [{ name: "Goods & Services Tax", code: "GSTIN", value: user.gstin, status: "Verified" }] : []),
+        ...(user.pan ? [{ name: "Permanent Account Number", code: "PAN", value: user.pan, status: "Verified" }] : [])
+      ],
+      applications: [],
+      documents: [],
+      renewals: []
+    };
+
+    this.addOrUpdateAccount(newAcc);
+    this.switchAccount(accId);
   },
 
   switchAccount(accId) {
     localStorage.setItem(this.ACTIVE_ID_KEY, accId);
     const acc = this.getActiveAccount();
-    AlgoUI.showToast(`Switched workspace to ${acc.companyName} (${acc.userName})`, "success");
+    if (acc) {
+      if (acc.token) {
+        localStorage.setItem(TOKEN_KEY, acc.token);
+      }
+      AlgoUI.showToast(`Switched workspace to ${acc.companyName} (${acc.userName})`, "success");
+    }
     AlgoUI.closeModal();
     this.syncCurrentPageDOM();
+  },
+
+  logoutCurrent() {
+    const accounts = this.getAllAccounts();
+    const activeId = this.getActiveAccountId();
+    const remaining = accounts.filter(a => a.id !== activeId);
+    this.saveAllAccounts(remaining);
+    localStorage.removeItem(this.ACTIVE_ID_KEY);
+
+    if (remaining.length > 0) {
+      this.switchAccount(remaining[0].id);
+      AlgoUI.showToast(`Signed out. Switched to workspace: ${remaining[0].companyName}`, "info");
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+      this.syncCurrentPageDOM();
+      AlgoUI.showToast("Signed out. Workspace session cleared.", "info");
+      AlgoUI.closeModal();
+      setTimeout(() => {
+        window.location.href = "login.html";
+      }, 400);
+    }
   },
 
   addOrUpdateAccount(accountData) {
@@ -2380,7 +2316,15 @@ const AlgoAccounts = {
 
   syncCurrentPageDOM() {
     const acc = this.getActiveAccount();
-    if (!acc) return;
+    if (!acc) {
+      // Clean Guest Mode across all topbars
+      document.querySelectorAll(".tb-avatar").forEach(el => el.textContent = "👤");
+      document.querySelectorAll(".tb-user-name").forEach(el => {
+        el.innerHTML = `<a href="login.html" style="color:inherit; text-decoration:none; font-weight:700;">Sign In / Register</a>`;
+      });
+      document.querySelectorAll(".tb-user-company").forEach(el => el.textContent = "Guest Mode");
+      return;
+    }
 
     // 1. Topbar elements
     document.querySelectorAll(".tb-avatar").forEach(el => el.textContent = acc.initials || "AS");
@@ -2391,7 +2335,7 @@ const AlgoAccounts = {
     document.querySelectorAll(".company-name").forEach(el => el.textContent = acc.companyName);
     document.querySelectorAll(".company-avatar").forEach(el => el.textContent = acc.initials || "SP");
     const metaEl = document.querySelector(".company-meta");
-    if (metaEl) metaEl.textContent = `${acc.operationsDesc || 'Precision engineering'} · ${acc.state || 'Maharashtra'}`;
+    if (metaEl) metaEl.textContent = `${acc.operationsDesc || 'Industrial operations'} · ${acc.state || 'India'}`;
     
     document.querySelectorAll(".factory-name").forEach(el => el.textContent = acc.unitName);
     document.querySelectorAll(".factory-addr").forEach(el => el.textContent = acc.unitAddress);
@@ -2403,9 +2347,9 @@ const AlgoAccounts = {
 
     const fstatVals = document.querySelectorAll(".fstat-val");
     if (fstatVals.length >= 4) {
-      fstatVals[0].textContent = acc.landArea || "8,400 sq. m.";
-      fstatVals[1].textContent = String(acc.employeesCount || 146);
-      fstatVals[2].textContent = acc.operationsDesc || "Machining & finishing";
+      fstatVals[0].textContent = acc.landArea || "5,000 sq. m.";
+      fstatVals[1].textContent = String(acc.employeesCount || 50);
+      fstatVals[2].textContent = acc.operationsDesc || "Manufacturing & assembly";
       fstatVals[3].textContent = acc.shiftPattern || "Two shifts";
     }
 
@@ -2414,11 +2358,11 @@ const AlgoAccounts = {
       cstatVals[0].textContent = acc.constitution || "Private Limited";
       cstatVals[1].textContent = acc.industryType || "Manufacturing";
       cstatVals[2].textContent = acc.state || "Maharashtra";
-      cstatVals[3].textContent = acc.incorporationDate || "18 Sep 2020";
+      cstatVals[3].textContent = acc.incorporationDate || "2026";
     } else if (cstatVals.length >= 3) {
       cstatVals[0].textContent = acc.constitution || "Private Limited Company";
-      cstatVals[1].textContent = acc.incorporationDate || "18 September 2020";
-      cstatVals[2].textContent = acc.nicCode || "25910";
+      cstatVals[1].textContent = acc.incorporationDate || "2026";
+      cstatVals[2].textContent = acc.nicCode || "General";
     }
 
     // 3. Registrations section on profile.html
@@ -2463,9 +2407,75 @@ const AlgoAccounts = {
 
     // 5. Dashboard greeting
     const greetingEl = document.querySelector(".mk-greeting");
-    if (greetingEl) greetingEl.textContent = `Good morning, ${acc.userName.split(" ")[0]}`;
+    if (greetingEl) greetingEl.textContent = `Good day, ${acc.userName.split(" ")[0]}`;
   }
 };
+
+window.AlgoAccounts = AlgoAccounts;
+
+// ----------------------------------------------------------------------------
+// Responsive Mobile Drawer Controller
+// ----------------------------------------------------------------------------
+window.toggleMobileSidebar = function(open) {
+  const sidebar = document.querySelector(".app-sidebar, .sidebar");
+  const overlay = document.getElementById("sidebar-overlay");
+  if (!sidebar) return;
+
+  const shouldOpen = typeof open === "boolean" ? open : !sidebar.classList.contains("mobile-open");
+  if (shouldOpen) {
+    sidebar.classList.add("mobile-open");
+    if (overlay) overlay.classList.add("active");
+  } else {
+    sidebar.classList.remove("mobile-open");
+    if (overlay) overlay.classList.remove("active");
+  }
+};
+
+function initResponsiveSidebar() {
+  if (typeof document === "undefined") return;
+
+  // 1. Inject overlay if not present
+  if (!document.getElementById("sidebar-overlay")) {
+    const overlay = document.createElement("div");
+    overlay.id = "sidebar-overlay";
+    overlay.className = "sidebar-overlay";
+    overlay.onclick = () => window.toggleMobileSidebar(false);
+    document.body.appendChild(overlay);
+  }
+
+  // 2. Inject hamburger icon in topbar on mobile
+  const topbar = document.querySelector(".app-topbar, .topbar, .mk-topbar, .dash-header, .header");
+  if (topbar && !document.getElementById("mobile-menu-hamburger")) {
+    const hamburger = document.createElement("button");
+    hamburger.id = "mobile-menu-hamburger";
+    hamburger.className = "mobile-menu-btn";
+    hamburger.title = "Open Navigation Menu";
+    hamburger.innerHTML = "☰";
+    hamburger.onclick = () => window.toggleMobileSidebar(true);
+    topbar.prepend(hamburger);
+  }
+
+  // 3. Close mobile sidebar on nav item click
+  document.querySelectorAll(".sidebar-nav-link, .sb-item").forEach(link => {
+    link.addEventListener("click", () => {
+      if (window.innerWidth <= 992) {
+        window.toggleMobileSidebar(false);
+      }
+    });
+  });
+}
+
+if (typeof document !== "undefined") {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      AlgoAccounts.syncCurrentPageDOM();
+      initResponsiveSidebar();
+    });
+  } else {
+    AlgoAccounts.syncCurrentPageDOM();
+    initResponsiveSidebar();
+  }
+}
 
 // ----------------------------------------------------------------------------
 // 6. User Profile Hub & Multi-Account Switcher Modal
@@ -2473,6 +2483,35 @@ const AlgoAccounts = {
 window.openProfileMenuModal = function() {
   const activeAcc = AlgoAccounts.getActiveAccount();
   const allAccounts = AlgoAccounts.getAllAccounts();
+
+  if (!activeAcc) {
+    const guestBodyHtml = `
+      <div style="display:flex; flex-direction:column; gap:1.25rem; text-align:center; padding:1.5rem 0.5rem;">
+        <div style="width:64px; height:64px; border-radius:50%; background:#f1f5f9; display:flex; align-items:center; justify-content:center; font-size:1.8rem; margin:0 auto;">
+          👤
+        </div>
+        <div>
+          <h3 style="font-size:1.2rem; font-weight:800; color:#0f172a; margin-bottom:0.35rem;">Guest Mode</h3>
+          <p style="font-size:0.86rem; color:#64748b; line-height:1.5; max-width:340px; margin:0 auto;">
+            Sign in to access your enterprise statutory milestones, clearances, and compliance vault securely.
+          </p>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:0.6rem; max-width:320px; width:100%; margin:0.5rem auto 0 auto;">
+          <a href="login.html" class="btn btn-primary" style="padding:0.75rem; border-radius:8px; font-weight:700; text-decoration:none; display:block; background:#0d7a6b; color:#fff;">
+            Sign In with Password or OTP →
+          </a>
+          <a href="register.html" class="btn" style="padding:0.75rem; border-radius:8px; font-weight:700; text-decoration:none; display:block; background:#f8fafc; border:1px solid #cbd5e1; color:#334155;">
+            Register New Enterprise Profile
+          </a>
+        </div>
+      </div>
+    `;
+    const guestFooterHtml = `
+      <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.closeModal()" style="padding:0.5rem 1rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600;">Close</button>
+    `;
+    AlgoUI.openModal("Business Profile & Account Hub", guestBodyHtml, guestFooterHtml);
+    return;
+  }
 
   const bodyHtml = `
     <div style="display:flex; flex-direction:column; gap:1.25rem;">
@@ -2487,7 +2526,7 @@ window.openProfileMenuModal = function() {
             <span style="font-size:0.68rem; font-weight:700; background:rgba(255,255,255,0.2); padding:0.15rem 0.5rem; border-radius:20px;">Active Workspace</span>
           </div>
           <div style="font-size:0.84rem; font-weight:600; color:#e2e8f0; margin-top:2px;">${activeAcc.companyName}</div>
-          <div style="font-size:0.75rem; color:#cbd5e1; margin-top:2px;">${activeAcc.email} · ${activeAcc.state}</div>
+          <div style="font-size:0.75rem; color:#cbd5e1; margin-top:2px;">${activeAcc.email} ${activeAcc.state ? '· ' + activeAcc.state : ''}</div>
         </div>
       </div>
 
@@ -2511,7 +2550,7 @@ window.openProfileMenuModal = function() {
       <div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
           <span style="font-size:0.75rem; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:0.6px;">Switch Business Profile</span>
-          <span style="font-size:0.72rem; color:#64748b;">${allAccounts.length} profiles configured</span>
+          <span style="font-size:0.72rem; color:#64748b;">${allAccounts.length} profile(s) signed in</span>
         </div>
         <div style="display:flex; flex-direction:column; gap:0.5rem; max-height:220px; overflow-y:auto; padding-right:4px;">
           ${allAccounts.map(acc => {
@@ -2543,12 +2582,12 @@ window.openProfileMenuModal = function() {
   `;
 
   const footerHtml = `
-    <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.showToast('Signed out of session.', 'info'); AlgoUI.closeModal();" style="padding:0.5rem 0.9rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600; color:#dc2626;">
-      🚪 Sign Out
+    <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoAccounts.logoutCurrent()" style="padding:0.5rem 0.9rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600; color:#dc2626;">
+      🚪 Sign Out Workspace
     </button>
-    <button type="button" class="btn btn-primary btn-sm" onclick="openAuthModal('login')" style="padding:0.5rem 1.15rem; border:none; border-radius:6px; background:#0d7a6b; color:#fff; cursor:pointer; font-weight:700;">
+    <a href="login.html" class="btn btn-primary btn-sm" style="padding:0.5rem 1.15rem; border:none; border-radius:6px; background:#0d7a6b; color:#fff; text-decoration:none; cursor:pointer; font-weight:700;">
       ➕ Add / Sign In Another Account
-    </button>
+    </a>
   `;
 
   AlgoUI.openModal("Business Profile & Account Hub", bodyHtml, footerHtml);
@@ -2558,172 +2597,7 @@ window.openProfileMenuModal = function() {
 // 7. In-Page Auth (Login & Register) Modal
 // ----------------------------------------------------------------------------
 window.openAuthModal = function(defaultTab = "login") {
-  const isLogin = defaultTab === "login";
-  const bodyHtml = `
-    <div style="display:flex; flex-direction:column; gap:1.15rem;">
-      <!-- Tab Bar -->
-      <div style="display:flex; border-bottom:1.5px solid #e2e8f0; gap:1rem;">
-        <button type="button" id="tab-modal-login" onclick="toggleAuthModalTab('login')" style="background:none; border:none; border-bottom:2.5px solid ${isLogin ? '#0d7a6b' : 'transparent'}; padding:0.6rem 0.8rem; font-size:0.88rem; font-weight:700; color:${isLogin ? '#0d7a6b' : '#64748b'}; cursor:pointer;">
-          Sign In to Account
-        </button>
-        <button type="button" id="tab-modal-reg" onclick="toggleAuthModalTab('reg')" style="background:none; border:none; border-bottom:2.5px solid ${!isLogin ? '#0d7a6b' : 'transparent'}; padding:0.6rem 0.8rem; font-size:0.88rem; font-weight:700; color:${!isLogin ? '#0d7a6b' : '#64748b'}; cursor:pointer;">
-          Register New Business
-        </button>
-      </div>
-
-      <!-- Login Form Pane -->
-      <div id="auth-pane-login" style="display:${isLogin ? 'flex' : 'none'}; flex-direction:column; gap:1rem;">
-        <div>
-          <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Authorized Email Address</label>
-          <input type="email" id="modal-auth-email" value="aarav.sharma@shaktiprecision.in" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;">
-        </div>
-        <div>
-          <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Password</label>
-          <input type="password" id="modal-auth-pass" value="••••••••••••" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;">
-        </div>
-
-        <!-- 1-Click Fast Profile Switcher -->
-        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem;">
-          <div style="font-size:0.72rem; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:0.5rem;">Quick Sign In as Demo Business Profile:</div>
-          <div style="display:flex; flex-direction:column; gap:0.35rem;">
-            <button type="button" onclick="AlgoAccounts.switchAccount('acc_aarav')" style="text-align:left; background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:0.45rem 0.65rem; font-size:0.78rem; font-weight:600; color:#0f172a; cursor:pointer;">
-              🏭 <strong>Shakti Precision</strong> (Aarav Sharma · Manufacturing)
-            </button>
-            <button type="button" onclick="AlgoAccounts.switchAccount('acc_priya')" style="text-align:left; background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:0.45rem 0.65rem; font-size:0.78rem; font-weight:600; color:#0f172a; cursor:pointer;">
-              🧪 <strong>Zenith Biopharma</strong> (Dr. Priya Patel · Chemicals)
-            </button>
-            <button type="button" onclick="AlgoAccounts.switchAccount('acc_rajesh')" style="text-align:left; background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:0.45rem 0.65rem; font-size:0.78rem; font-weight:600; color:#0f172a; cursor:pointer;">
-              🍏 <strong>Apex Agro Foods</strong> (Rajesh Mehta · Food Processing)
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Register Form Pane -->
-      <div id="auth-pane-reg" style="display:${!isLogin ? 'flex' : 'none'}; flex-direction:column; gap:0.9rem; max-height:55vh; overflow-y:auto; padding-right:4px;">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
-          <div>
-            <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Full Name</label>
-            <input type="text" id="modal-reg-name" placeholder="e.g. Vikram Singhania" style="width:100%; padding:0.5rem 0.7rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.84rem; box-sizing:border-box;">
-          </div>
-          <div>
-            <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Work Email</label>
-            <input type="email" id="modal-reg-email" placeholder="e.g. vikram@singhania.in" style="width:100%; padding:0.5rem 0.7rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.84rem; box-sizing:border-box;">
-          </div>
-        </div>
-        <div>
-          <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Enterprise / Company Legal Name</label>
-          <input type="text" id="modal-reg-company" placeholder="e.g. Singhania Robotics Pvt. Ltd." style="width:100%; padding:0.5rem 0.7rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.84rem; box-sizing:border-box;">
-        </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
-          <div>
-            <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Industry Sector</label>
-            <select id="modal-reg-sector" style="width:100%; padding:0.5rem 0.7rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.84rem; box-sizing:border-box;">
-              <option>Manufacturing & Engineering</option>
-              <option>Chemicals & Hazardous Materials</option>
-              <option>Food Processing & Agro</option>
-              <option>Electronics & Hardware</option>
-              <option>Textiles & Apparel</option>
-            </select>
-          </div>
-          <div>
-            <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">State Jurisdiction</label>
-            <select id="modal-reg-state" style="width:100%; padding:0.5rem 0.7rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.84rem; box-sizing:border-box;">
-              <option>Maharashtra</option>
-              <option>Gujarat</option>
-              <option>Karnataka</option>
-              <option>Tamil Nadu</option>
-              <option>Telangana</option>
-              <option>Uttar Pradesh</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  const footerHtml = `
-    <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.closeModal()" style="padding:0.5rem 1rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600;">Cancel</button>
-    <button type="button" class="btn btn-primary btn-sm" id="modal-auth-submit-btn" onclick="handleAuthModalSubmit()" style="padding:0.5rem 1.25rem; border:none; border-radius:6px; background:#0d7a6b; color:#fff; cursor:pointer; font-weight:700;">
-      ${isLogin ? 'Sign In to Workspace →' : 'Register Enterprise Account →'}
-    </button>
-  `;
-
-  AlgoUI.openModal(isLogin ? "Sign In to Business Workspace" : "Register New Business Profile", bodyHtml, footerHtml);
-};
-
-window.toggleAuthModalTab = function(tab) {
-  const isLogin = tab === "login";
-  const loginPane = document.getElementById("auth-pane-login");
-  const regPane = document.getElementById("auth-pane-reg");
-  const tabLogin = document.getElementById("tab-modal-login");
-  const tabReg = document.getElementById("tab-modal-reg");
-  const submitBtn = document.getElementById("modal-auth-submit-btn");
-
-  if (loginPane) loginPane.style.display = isLogin ? "flex" : "none";
-  if (regPane) regPane.style.display = !isLogin ? "flex" : "none";
-
-  if (tabLogin) {
-    tabLogin.style.borderBottom = isLogin ? "2.5px solid #0d7a6b" : "2.5px solid transparent";
-    tabLogin.style.color = isLogin ? "#0d7a6b" : "#64748b";
-  }
-  if (tabReg) {
-    tabReg.style.borderBottom = !isLogin ? "2.5px solid #0d7a6b" : "2.5px solid transparent";
-    tabReg.style.color = !isLogin ? "#0d7a6b" : "#64748b";
-  }
-  if (submitBtn) {
-    submitBtn.textContent = isLogin ? "Sign In to Workspace →" : "Register Enterprise Account →";
-  }
-};
-
-window.handleAuthModalSubmit = function() {
-  const isReg = document.getElementById("auth-pane-reg")?.style.display === "flex";
-  if (isReg) {
-    const name = document.getElementById("modal-reg-name")?.value?.trim() || "Compliance Officer";
-    const company = document.getElementById("modal-reg-company")?.value?.trim() || "New Enterprise Ltd.";
-    const email = document.getElementById("modal-reg-email")?.value?.trim() || "officer@enterprise.in";
-    const sector = document.getElementById("modal-reg-sector")?.value || "Manufacturing";
-    const state = document.getElementById("modal-reg-state")?.value || "Maharashtra";
-
-    const newAcc = {
-      id: "acc_" + Date.now(),
-      userName: name,
-      email: email,
-      initials: name.split(" ").map(p => p[0]).join("").substring(0, 2).toUpperCase() || "NE",
-      companyName: company,
-      constitution: "Private Limited Company",
-      industryType: sector,
-      sectorBadge: `● ${sector}`,
-      nicCode: "28100 · General Engineering",
-      incorporationDate: "2026",
-      unitName: `${company.split(" ")[0]} Main Facility`,
-      unitBadge: "Primary unit",
-      unitAddress: `Industrial Zone, ${state}`,
-      state: state,
-      landArea: "10,000 sq. m.",
-      employeesCount: 50,
-      powerLoad: "250 kW",
-      shiftPattern: "Two shifts",
-      operationsDesc: "Manufacturing & assembly",
-      completionPct: 75,
-      registrations: [
-        { name: "Corporate Identification Number", code: "CIN", value: "U" + Math.floor(10000000 + Math.random()*90000000), status: "Verified" },
-        { name: "Goods & Services Tax", code: "GSTIN", value: "27AAAC" + Math.floor(1000 + Math.random()*9000) + "Z1", status: "Verified" }
-      ],
-      stats: { approvals: 8, inProgress: 2, dueSoon: 1 },
-      applications: [],
-      documents: [],
-      renewals: []
-    };
-
-    AlgoAccounts.addOrUpdateAccount(newAcc);
-    AlgoUI.showToast(`Account registered and activated for ${company}!`, "success");
-    AlgoUI.closeModal();
-  } else {
-    AlgoAccounts.switchAccount("acc_aarav");
-    AlgoUI.showToast("Signed in successfully to workspace!", "success");
-    AlgoUI.closeModal();
-  }
+  window.location.href = (defaultTab === "reg") ? "register.html" : "login.html";
 };
 
 // ----------------------------------------------------------------------------
@@ -2731,6 +2605,11 @@ window.handleAuthModalSubmit = function() {
 // ----------------------------------------------------------------------------
 window.openNewApplicationModal = function() {
   const activeAcc = AlgoAccounts.getActiveAccount();
+  if (!activeAcc) {
+    AlgoUI.showToast("Please sign in or register to start statutory clearance applications.", "info");
+    openProfileMenuModal();
+    return;
+  }
   const industry = (activeAcc.industryType || "Manufacturing").toLowerCase();
 
   // Filter catalog strictly to clearances needed for this company's profile
@@ -4424,6 +4303,7 @@ const SetuBot = {
           </div>
         </div>
         <div class="setubot-header-actions">
+          <button class="setubot-header-btn" id="setubot-expand-btn" title="Toggle Fullscreen Mode">⛶</button>
           <button class="setubot-header-btn" id="setubot-clear-btn" title="Clear Chat">🗑️</button>
           <button class="setubot-header-btn" id="setubot-close-btn" title="Close">✕</button>
         </div>
@@ -4459,6 +4339,7 @@ const SetuBot = {
     const chatWindow = document.getElementById("setubot-window");
     const closeBtn = document.getElementById("setubot-close-btn");
     const clearBtn = document.getElementById("setubot-clear-btn");
+    const expandBtn = document.getElementById("setubot-expand-btn");
     const sendBtn = document.getElementById("setubot-send-btn");
     const input = document.getElementById("setubot-input");
     const suggestions = document.getElementById("setubot-suggestions");
@@ -4466,6 +4347,15 @@ const SetuBot = {
     launcher.addEventListener("click", () => this.toggleChat());
     closeBtn.addEventListener("click", () => this.toggleChat(false));
     
+    if (expandBtn) {
+      expandBtn.addEventListener("click", () => {
+        const isFull = chatWindow.classList.toggle("fullscreen");
+        expandBtn.textContent = isFull ? "🗗" : "⛶";
+        expandBtn.title = isFull ? "Restore Normal Size" : "Expand Fullscreen Mode";
+        this.scrollToBottom();
+      });
+    }
+
     clearBtn.addEventListener("click", () => {
       sessionStorage.removeItem("setubot_history");
       this.messages = [];
@@ -4664,12 +4554,26 @@ const SetuBot = {
     // 2. Show typing
     this.showTypingIndicator();
 
-    // 3. Request bot reply
+    // 3. Request bot reply from Gemini RAG backend
     try {
-      const response = await fetch("/api/chat", {
+      const activeAcc = (typeof AlgoAccounts !== "undefined") ? AlgoAccounts.getActiveAccount() : null;
+      const historyPayload = this.messages.slice(-6).map(m => ({
+        sender: m.sender,
+        text: m.text
+      }));
+
+      const response = await fetch(`${API_BASE}/chat/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userText })
+        body: JSON.stringify({
+          query: userText,
+          history: historyPayload,
+          userProfile: activeAcc ? {
+            state: activeAcc.state,
+            industryType: activeAcc.industryType,
+            companyName: activeAcc.companyName
+          } : {}
+        })
       });
 
       if (response.ok) {
@@ -4677,7 +4581,7 @@ const SetuBot = {
         this.hideTypingIndicator();
         const botMsg = {
           sender: "bot",
-          text: data.response || "I am checking the statutory regulations...",
+          text: data.reply || data.response || "I am checking the statutory regulations...",
           quickLinks: data.quickLinks || []
         };
         this.messages.push(botMsg);
@@ -4686,7 +4590,7 @@ const SetuBot = {
         return;
       }
     } catch (e) {
-      // Backend request failed -> use client-side knowledge fallback
+      console.warn("RAG server query failed, falling back to local intelligence:", e);
     }
 
     // Fallback Client Intelligence
