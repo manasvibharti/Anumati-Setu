@@ -5,14 +5,14 @@
  * ============================================================================
  */
 
-// Automatically detect server host/port if running under Express or fallback to port 4000
+// Automatically detect server host/port or route to Render backend
 const API_BASE = (typeof window !== "undefined" && window.location.origin && window.location.origin.startsWith("http") && !window.location.origin.includes(":3000") && !window.location.origin.includes(":8000") && !window.location.origin.includes(":5500"))
   ? `${window.location.origin}/api`
-  : "http://localhost:4000/api";
+  : (typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:4000/api" : "https://anumati-setu.onrender.com/api");
 
 const UPLOADS_BASE = (typeof window !== "undefined" && window.location.origin && window.location.origin.startsWith("http") && !window.location.origin.includes(":3000") && !window.location.origin.includes(":8000") && !window.location.origin.includes(":5500"))
   ? `${window.location.origin}/uploads`
-  : "http://localhost:4000/uploads";
+  : (typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:4000/uploads" : "https://anumati-setu.onrender.com/uploads");
 
 const TOKEN_KEY = "anumatisetu_auth_token";
 
