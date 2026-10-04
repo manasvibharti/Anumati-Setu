@@ -30,19 +30,28 @@ const UPLOAD_DIR = path.join(__dirname, "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 app.use("/uploads", express.static(UPLOAD_DIR));
 
-// Serve frontend static assets
+// Serve frontend static assets with no-cache headers for instant updates
 const FRONTEND_DIR = path.join(__dirname, "..", "frontend");
-app.use(express.static(FRONTEND_DIR));
+app.use(express.static(FRONTEND_DIR, {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+  }
+}));
 
 // ---------------------------------------------------------------------------
 // API Routes
 // ---------------------------------------------------------------------------
-app.use("/api/auth",          require("./routes/auth"));
-app.use("/api/profile",       require("./routes/profile"));
-app.use("/api/applications",  require("./routes/applications"));
-app.use("/api/documents",     require("./routes/documents"));
-app.use("/api/renewals",      require("./routes/renewals"));
-app.use("/api/dashboard",     require("./routes/dashboard"));
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api/profile", require("./routes/profile"));
+app.use("/api/applications", require("./routes/applications"));
+app.use("/api/documents", require("./routes/documents"));
+app.use("/api/renewals", require("./routes/renewals"));
+app.use("/api/dashboard", require("./routes/dashboard"));
+app.use("/api/chat", require("./routes/chat"));
 
 // Health check
 app.get("/api/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));

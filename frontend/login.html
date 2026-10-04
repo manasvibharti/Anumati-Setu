@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign in — Anumati Setu</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--navy:#1a2a42;--teal:#0d7a6b;--white:#fff;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-400:#9ca3af;--gray-500:#6b7280;--gray-700:#374151;--gray-900:#111827}
+    body{font-family:'Inter',sans-serif;display:flex;height:100vh;overflow:hidden}
+
+    /* LEFT PANEL */
+    .lp-left{
+      width:42%;flex-shrink:0;position:relative;
+      display:flex;flex-direction:column;
+      background:#0a1628;
+    }
+    .lp-left-bg{position:absolute;inset:0;background:url('assets/hero_refinery.jpg') center/cover no-repeat;opacity:.55}
+    .lp-left-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,18,35,.6) 0%,rgba(8,18,35,.85) 100%)}
+    .lp-left-inner{position:relative;z-index:2;display:flex;flex-direction:column;height:100%;padding:1.75rem 2rem}
+    .lp-logo{display:flex;align-items:center;gap:.75rem;margin-bottom:auto}
+    .lp-logo-icon{width:42px;height:42px;border-radius:9px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .lp-logo-name{font-size:1rem;font-weight:800;color:#fff;display:block;line-height:1.2}
+    .lp-logo-sub{font-size:.55rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;display:block;margin-top:2px}
+    .lp-left-content{margin-bottom:auto;padding-bottom:3rem}
+    .lp-left-eyebrow{font-size:.65rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:.85rem}
+    .lp-left-title{font-size:2.4rem;font-weight:800;color:#fff;line-height:1.15;letter-spacing:-.5px;margin-bottom:1rem}
+    .lp-left-desc{font-size:.88rem;color:#94a3b8;line-height:1.65;max-width:340px}
+    .lp-left-trust{display:flex;align-items:center;gap:.5rem;font-size:.78rem;color:#94a3b8}
+
+    /* RIGHT PANEL */
+    .lp-right{flex:1;display:flex;flex-direction:column;background:#fff;overflow-y:auto}
+    .lp-right-topbar{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 2.5rem;border-bottom:1px solid var(--gray-200)}
+    .lp-back{display:flex;align-items:center;gap:.4rem;font-size:.84rem;font-weight:600;color:var(--gray-500);text-decoration:none;transition:color .15s}
+    .lp-back:hover{color:var(--gray-900)}
+    .lp-register-note{font-size:.84rem;color:var(--gray-500)}
+    .lp-register-note a{font-weight:700;color:var(--teal);text-decoration:none}
+    .lp-register-note a:hover{text-decoration:underline}
+    .lp-right-body{flex:1;display:flex;align-items:center;justify-content:center;padding:2rem}
+    .login-box{width:100%;max-width:400px;border:1.5px dashed #bfdbfe;border-radius:12px;padding:2rem}
+    .login-title{font-size:1.5rem;font-weight:800;color:var(--gray-900);margin-bottom:.35rem}
+    .login-subtitle{font-size:.86rem;color:var(--gray-500);margin-bottom:1.75rem}
+    .form-group{margin-bottom:1rem}
+    label{display:block;font-size:.8rem;font-weight:600;color:var(--gray-700);margin-bottom:.4rem}
+    .input-wrap{position:relative;display:flex;align-items:center}
+    .input-wrap svg{position:absolute;left:.75rem;color:var(--gray-400)}
+    .input-wrap input{width:100%;padding:.6rem .75rem .6rem 2.2rem;border:1px solid var(--gray-200);border-radius:7px;font-size:.88rem;font-family:inherit;color:var(--gray-900);outline:none;transition:border-color .15s}
+    .input-wrap input:focus{border-color:var(--teal)}
+    .input-wrap input::placeholder{color:var(--gray-400)}
+    .form-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+    .remember{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:var(--gray-600)}
+    .remember input{accent-color:var(--teal)}
+    .forgot{font-size:.82rem;font-weight:600;color:var(--teal);text-decoration:none}
+    .forgot:hover{text-decoration:underline}
+    .btn-signin{width:100%;background:var(--teal);color:#fff;font-size:.9rem;font-weight:700;border:none;border-radius:8px;padding:.75rem;cursor:pointer;font-family:inherit;transition:background .15s;margin-bottom:1rem}
+    .btn-signin:hover{background:#0a6357}
+    .divider{display:flex;align-items:center;gap:.75rem;margin-bottom:1rem}
+    .divider hr{flex:1;border:none;border-top:1px solid var(--gray-200)}
+    .divider span{font-size:.78rem;color:var(--gray-400);font-weight:500}
+    .btn-sso{width:100%;background:#fff;color:var(--gray-700);font-size:.88rem;font-weight:600;border:1px solid var(--gray-200);border-radius:8px;padding:.7rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:.5rem;transition:border-color .15s,background .15s}
+    .btn-sso:hover{border-color:var(--teal);background:var(--gray-50)}
+    .trouble-box{background:#f0fdf4;border:1px solid #a7f3d0;border-radius:8px;padding:.8rem .9rem;display:flex;align-items:flex-start;gap:.6rem;margin-top:1rem}
+    .trouble-box svg{color:var(--teal);flex-shrink:0;margin-top:1px}
+    .trouble-text{font-size:.78rem;color:var(--teal);line-height:1.45}
+    .lp-right-footer{padding:1.25rem 2.5rem;text-align:center;border-top:1px solid var(--gray-200)}
+    .footer-links{display:flex;justify-content:center;gap:1.5rem}
+    .footer-link{font-size:.75rem;color:var(--gray-400);text-decoration:none}
+    .footer-link:hover{color:var(--gray-700)}
+  </style>
+</head>
+<body>
+
+<!-- LEFT: industrial photo -->
+<div class="lp-left">
+  <div class="lp-left-bg"></div>
+  <div class="lp-left-overlay"></div>
+  <div class="lp-left-inner">
+    <div class="lp-logo">
+      <div class="lp-logo-icon">
+        <svg width="22" height="22" viewBox="0 0 100 100" fill="none"><polygon points="50,18 84,35 16,35" fill="white"/><rect x="18" y="38" width="64" height="4" rx="2" fill="white"/><rect x="21" y="44" width="8" height="22" rx="1" fill="white"/><rect x="37" y="44" width="8" height="22" rx="1" fill="white"/><rect x="55" y="44" width="8" height="22" rx="1" fill="white"/><rect x="71" y="44" width="8" height="22" rx="1" fill="white"/><rect x="16" y="68" width="68" height="4" rx="1.5" fill="white"/><rect x="11" y="74" width="78" height="5.5" rx="2.5" fill="white"/></svg>
+      </div>
+      <div>
+        <span class="lp-logo-name">Anumati Setu</span>
+        <span class="lp-logo-sub">Industrial Approvals Platform</span>
+      </div>
+    </div>
+    <div class="lp-left-content">
+      <div class="lp-left-eyebrow">Industrial Approvals, Simplified</div>
+      <h1 class="lp-left-title">A single workspace for every statutory milestone.</h1>
+      <p class="lp-left-desc">Access business records, active applications, inspections, document evidence and upcoming renewals securely.</p>
+    </div>
+    <div class="lp-left-trust">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Secure, role-based access for your organisation
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT: login form -->
+<div class="lp-right">
+  <div class="lp-right-topbar">
+    <a href="index.html" class="lp-back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to home
+    </a>
+    <span class="lp-register-note">New to Anumati Setu? <a href="register.html">Register</a></span>
+  </div>
+
+  <div class="lp-right-body">
+    <div class="login-box">
+      <h2 class="login-title">Welcome back</h2>
+      <p class="login-subtitle">Sign in to continue to your business workspace.</p>
+
+      <div class="form-group">
+        <label>Email address *</label>
+        <div class="input-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <input type="email" placeholder="name@company.com" id="login-email" autocomplete="email">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Password *</label>
+        <div class="input-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" placeholder="Enter your password" id="login-password" autocomplete="current-password">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label class="remember"><input type="checkbox"> Remember me</label>
+        <a href="#" class="forgot">Forgot password?</a>
+      </div>
+
+      <button class="btn-signin" onclick="handleLogin()">Sign in securely</button>
+
+      <div class="divider"><hr><span>or</span><hr></div>
+
+      <button class="btn-sso">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4"/></svg>
+        Sign in with business SSO
+      </button>
+
+      <div class="trouble-box">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span class="trouble-text">Having trouble accessing your organisation? Contact the facilitation desk.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="lp-right-footer">
+    <div class="footer-links">
+      <a href="#" class="footer-link">Privacy policy</a>
+      <a href="#" class="footer-link">Terms of use</a>
+      <a href="#" class="footer-link">Accessibility</a>
+    </div>
+  </div>
+</div>
+
+<script src="script.js?v=4.2"></script>
+<script>
+function handleLogin(){
+  const email = document.getElementById('login-email')?.value?.trim() || "aarav.sharma@shaktiprecision.in";
+  if (typeof AlgoAccounts !== "undefined") {
+    AlgoAccounts.switchAccount("acc_aarav");
+  }
+  if (typeof AlgoUI !== "undefined") {
+    AlgoUI.showToast("Signed in successfully to workspace!", "success");
+  }
+  setTimeout(() => {
+    window.location.href = 'dashboard.html';
+  }, 250);
+}
+</script>
+</body>
+</html>
+

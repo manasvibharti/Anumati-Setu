@@ -1,117 +1,450 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Renewals | AnumatiSetu</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Renewals — Anumati Setu</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --navy:#1a2a42;--teal:#0d7a6b;--teal-l:#e6f5f3;
+      --white:#fff;--gray-50:#f9fafb;--gray-100:#f3f4f6;
+      --gray-200:#e5e7eb;--gray-400:#9ca3af;--gray-500:#6b7280;
+      --gray-700:#374151;--gray-900:#111827;
+      --red:#ef4444;--amber:#f59e0b;--orange:#f97316;
+    }
+    body{font-family:'Inter',sans-serif;background:var(--gray-50);color:var(--gray-900);display:flex;height:100vh;overflow:hidden}
+
+    /* ── SIDEBAR ── */
+    .sidebar{width:220px;background:var(--navy);display:flex;flex-direction:column;height:100vh;overflow-y:auto;flex-shrink:0}
+    .sb-brand{padding:1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:.75rem}
+    .sb-brand-icon{width:38px;height:38px;border-radius:8px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .sb-brand-name{font-size:.88rem;font-weight:800;color:#fff;line-height:1.2}
+    .sb-brand-sub{font-size:.55rem;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.8px}
+    .sb-nav{padding:.75rem .6rem;flex:1}
+    .sb-item{display:flex;align-items:center;gap:.65rem;padding:.6rem .75rem;border-radius:7px;font-size:.85rem;font-weight:500;color:#94a3b8;text-decoration:none;cursor:pointer;transition:background .15s,color .15s;margin-bottom:.15rem}
+    .sb-item:hover{background:rgba(255,255,255,.07);color:#e2e8f0}
+    .sb-item.active{background:var(--teal);color:#fff}
+    .sb-item svg{width:16px;height:16px;flex-shrink:0;opacity:.85}
+    .sb-support{margin:.75rem .6rem;background:rgba(99,179,237,.12);border:1px solid rgba(99,179,237,.2);border-radius:10px;padding:1rem}
+    .sb-support-q{width:24px;height:24px;border-radius:50%;background:rgba(99,179,237,.25);display:flex;align-items:center;justify-content:center;margin-bottom:.5rem}
+    .sb-support-title{font-size:.8rem;font-weight:700;color:#e2e8f0;margin-bottom:.35rem}
+    .sb-support-desc{font-size:.72rem;color:#94a3b8;line-height:1.5;margin-bottom:.6rem}
+    .sb-support-link{font-size:.75rem;font-weight:600;color:#63b3ed;text-decoration:none}
+
+    /* ── MAIN ── */
+    .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .topbar{background:#fff;border-bottom:1px solid var(--gray-200);height:60px;display:flex;align-items:center;padding:0 1.75rem;gap:1rem;flex-shrink:0}
+    .tb-search{flex:1;max-width:480px;display:flex;align-items:center;gap:.6rem;background:var(--gray-100);border:1px solid var(--gray-200);border-radius:8px;padding:.45rem .9rem}
+    .tb-search input{background:none;border:none;outline:none;font-size:.86rem;color:var(--gray-700);width:100%;font-family:inherit}
+    .tb-search input::placeholder{color:var(--gray-400)}
+    .tb-right{display:flex;align-items:center;gap:1rem;margin-left:auto}
+    .tb-bell{width:36px;height:36px;border-radius:8px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--gray-200)}
+    .tb-user{display:flex;align-items:center;gap:.65rem;cursor:pointer}
+    .tb-avatar{width:36px;height:36px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;color:#fff;flex-shrink:0}
+    .tb-user-name{font-size:.85rem;font-weight:700;color:var(--gray-900)}
+    .tb-user-company{font-size:.72rem;color:var(--gray-500)}
+
+    /* ── CONTENT ── */
+    .content{flex:1;overflow-y:auto;padding:2rem 1.75rem}
+
+    .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem}
+    .page-title{font-size:1.65rem;font-weight:800;color:var(--gray-900);letter-spacing:-.3px}
+    .page-subtitle{font-size:.86rem;color:var(--gray-500);margin-top:.25rem}
+    .btn-primary{display:inline-flex;align-items:center;gap:.4rem;background:var(--teal);color:#fff;font-size:.86rem;font-weight:700;padding:.65rem 1.25rem;border-radius:8px;border:none;cursor:pointer;font-family:inherit;transition:background .15s;white-space:nowrap}
+    .btn-primary:hover{background:#0a6357}
+
+    /* Alert banner */
+    .alert-banner{
+      background:#fffbeb;border:1px solid #fde68a;border-radius:10px;
+      padding:.9rem 1.25rem;
+      display:flex;align-items:center;justify-content:space-between;
+      gap:1rem;margin-bottom:1.25rem;
+    }
+    .alert-left{display:flex;align-items:flex-start;gap:.75rem}
+    .alert-icon{width:36px;height:36px;border-radius:8px;background:#fef3c7;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--amber)}
+    .alert-title{font-size:.88rem;font-weight:700;color:#92400e;margin-bottom:.2rem}
+    .alert-sub{font-size:.78rem;color:#a16207;line-height:1.45}
+    .alert-link{font-size:.84rem;font-weight:700;color:var(--gray-700);text-decoration:none;white-space:nowrap;padding:.5rem .9rem;border:1px solid var(--gray-200);border-radius:7px;background:#fff;transition:border-color .15s}
+    .alert-link:hover{border-color:var(--teal);color:var(--teal)}
+
+    /* Stat row */
+    .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
+    .stat-card{background:#fff;border:1px solid var(--gray-200);border-radius:12px;padding:1.25rem;display:flex;align-items:flex-start;justify-content:space-between}
+    .stat-label{font-size:.78rem;font-weight:600;color:var(--gray-500);margin-bottom:.5rem}
+    .stat-num{font-size:2rem;font-weight:800;color:var(--gray-900);letter-spacing:-.5px}
+    .stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+    /* two-column layout */
+    .two-col{display:grid;grid-template-columns:1fr 300px;gap:1.25rem;margin-bottom:1.25rem}
+
+    /* renewals list panel */
+    .panel{background:#fff;border:1px solid var(--gray-200);border-radius:12px;overflow:hidden}
+    .panel-header{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.25rem;border-bottom:1px solid var(--gray-100)}
+    .panel-title{font-size:.95rem;font-weight:700;color:var(--gray-900)}
+    .panel-action{font-size:.8rem;font-weight:600;color:var(--teal);text-decoration:none;cursor:pointer}
+    .panel-action:hover{text-decoration:underline}
+    .panel-body{padding:.5rem}
+
+    /* renewal card */
+    .renewal-card{border:1px solid var(--gray-200);border-radius:10px;padding:1rem 1.1rem;margin-bottom:.6rem;transition:box-shadow .15s}
+    .renewal-card:last-child{margin-bottom:0}
+    .renewal-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.06)}
+    .rc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.65rem;gap:.75rem}
+    .rc-left{display:flex;align-items:flex-start;gap:.75rem}
+    .rc-icon{width:36px;height:36px;border-radius:8px;background:#fef2f2;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .rc-name{font-size:.9rem;font-weight:700;color:var(--gray-900);margin-bottom:.15rem}
+    .rc-dept{font-size:.74rem;color:var(--gray-500)}
+    .rc-days{font-size:.78rem;font-weight:800;white-space:nowrap}
+    .days-red{color:var(--red)}
+    .days-amber{color:var(--amber)}
+    .rc-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem}
+    .rc-meta-item{}
+    .rc-meta-label{font-size:.62rem;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:.2rem}
+    .rc-meta-val{font-size:.84rem;font-weight:600;color:var(--gray-900)}
+    .rc-stage-val{font-size:.84rem;font-weight:700}
+    .stage-red{color:var(--red)}
+    .stage-amber{color:var(--amber)}
+    .stage-teal{color:var(--teal)}
+    .rc-bar-bg{height:5px;background:var(--gray-100);border-radius:3px;margin-bottom:.6rem;overflow:hidden}
+    .rc-bar-fill{height:100%;border-radius:3px}
+    .rc-footer{display:flex;align-items:center;justify-content:space-between}
+    .rc-hint{font-size:.74rem;color:var(--gray-400)}
+    .btn-prepare{display:inline-flex;align-items:center;font-size:.8rem;font-weight:700;color:var(--teal);background:#fff;border:1px solid var(--gray-200);border-radius:7px;padding:.4rem .85rem;cursor:pointer;font-family:inherit;transition:border-color .15s,background .15s;white-space:nowrap}
+    .btn-prepare:hover{border-color:var(--teal);background:var(--teal-l)}
+
+    /* calendar panel */
+    .cal-panel{background:#fff;border:1px solid var(--gray-200);border-radius:12px;padding:1.25rem}
+    .cal-panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+    .cal-panel-title{font-size:.95rem;font-weight:700;color:var(--gray-900)}
+    .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem}
+    .cal-month{font-size:.88rem;font-weight:700;color:var(--gray-900)}
+    .cal-arrows{display:flex;gap:.35rem}
+    .cal-arrow{width:26px;height:26px;border-radius:6px;border:1px solid var(--gray-200);display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+    .cal-hdr{font-size:.62rem;font-weight:700;color:var(--gray-500);text-align:center;padding:.25rem 0}
+    .cal-day{font-size:.72rem;text-align:center;padding:.3rem .2rem;border-radius:6px;cursor:pointer;color:var(--gray-700);transition:background .1s}
+    .cal-day:hover{background:var(--gray-100)}
+    .cal-day.today{background:var(--teal);color:#fff;font-weight:800}
+    .cal-day.expiry-red{background:#fef2f2;color:var(--red);font-weight:700}
+    .cal-day.expiry-amber{background:#fffbeb;color:var(--amber);font-weight:700}
+    .cal-day.empty{opacity:0;pointer-events:none}
+    .cal-legend{margin-top:.85rem;display:flex;flex-direction:column;gap:.5rem}
+    .cal-legend-item{display:flex;align-items:flex-start;gap:.5rem}
+    .cal-legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;margin-top:2px}
+    .cal-legend-text{font-size:.74rem;color:var(--gray-700)}
+    .cal-legend-sub{font-size:.68rem;color:var(--gray-500);margin-top:.05rem}
+
+    /* recommended docs section */
+    .rec-panel{background:#fff;border:1px solid var(--gray-200);border-radius:12px;padding:1.25rem}
+    .rec-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem}
+    .rec-title{font-size:.95rem;font-weight:700;color:var(--gray-900)}
+    .rec-sub{font-size:.78rem;color:var(--gray-500);margin-top:.2rem}
+    .rec-link{display:flex;align-items:center;gap:.35rem;font-size:.8rem;font-weight:600;color:var(--teal);text-decoration:none;white-space:nowrap;flex-shrink:0}
+    .rec-link:hover{text-decoration:underline}
+    .rec-items{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+    .rec-item{border:1px solid var(--gray-200);border-radius:8px;padding:.9rem 1rem;display:flex;align-items:flex-start;gap:.6rem}
+    .rec-num{font-size:.72rem;font-weight:800;color:var(--teal);background:var(--teal-l);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+    .rec-item-text{font-size:.82rem;font-weight:600;color:var(--gray-900);line-height:1.35}
+  </style>
 </head>
 <body>
 
-  <!-- =========================================================================
-       1. GLOBAL NAVIGATION BAR
-       ========================================================================= -->
-  <header class="navbar" role="banner">
-    <div class="nav-container">
-      <a href="index.html" class="brand-link">
-        <img src="assets/logo.svg" alt="AnumatiSetu" class="brand-logo-img" />
-      </a>
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <a href="index.html" class="sb-brand" onclick="window.location.href='index.html'" style="cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:.75rem">
+    <div class="sb-brand-icon"><svg width="22" height="22" viewBox="0 0 100 100" fill="none"><polygon points="50,18 84,35 16,35" fill="white"/><rect x="18" y="38" width="64" height="4" rx="2" fill="white"/><rect x="21" y="44" width="8" height="22" rx="1" fill="white"/><rect x="37" y="44" width="8" height="22" rx="1" fill="white"/><rect x="55" y="44" width="8" height="22" rx="1" fill="white"/><rect x="71" y="44" width="8" height="22" rx="1" fill="white"/><rect x="16" y="68" width="68" height="4" rx="1.5" fill="white"/><rect x="11" y="74" width="78" height="5.5" rx="2.5" fill="white"/></svg></div>
+    <div><div class="sb-brand-name">Anumati Setu</div><div class="sb-brand-sub">Industrial Approvals Platform</div></div>
+  </div>
+  <nav class="sb-nav">
+    <a href="dashboard.html" class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard
+    </a>
+    <a href="profile.html" class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Business Profile
+    </a>
+    <a href="approvals.html" class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/></svg>Required Approvals
+    </a>
+    <a href="applications.html" class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Applications
+    </a>
+    <a href="documents.html" class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Documents
+    </a>
+    <a href="renewals.html" class="sb-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Renewals
+    </a>
+  </nav>
+  <div class="sb-support">
+    <div class="sb-support-q"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#63b3ed" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+    <div class="sb-support-title">Need government support?</div>
+    <p class="sb-support-desc">Connect with the facilitation desk for application guidance.</p>
+    <a href="approvals.html" class="sb-support-link">Contact support →</a>
+  </div>
+</aside>
 
-      <nav class="nav-menu" id="main-nav-links" aria-label="Main Navigation">
-        <a href="dashboard.html" class="nav-link">Dashboard</a>
-        <a href="profile.html" class="nav-link">Business Profile</a>
-        <a href="approvals.html" class="nav-link">Required Approvals</a>
-        <a href="applications.html" class="nav-link">Applications</a>
-        <a href="documents.html" class="nav-link">Documents</a>
-        <a href="renewals.html" class="nav-link active">Renewals</a>
-      </nav>
+<!-- MAIN -->
+<div class="main">
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="tb-right">
+      <div class="tb-bell"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+      <div class="tb-user" onclick="openProfileMenuModal()" title="Business Profile & Account Hub" style="cursor:pointer">
+        <div class="tb-avatar">AS</div>
+        <div><div class="tb-user-name">Aarav Sharma</div><div class="tb-user-company">Shakti Precision Pvt. Ltd.</div></div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+  </div>
 
-      <div class="nav-actions">
-        <div class="notif-wrapper">
-          <button class="notif-btn" id="nav-notif-btn" aria-label="System Notifications">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-            </svg>
-            <span class="notif-badge" id="nav-notif-badge" style="display: none;">0</span>
-          </button>
+  <!-- Content -->
+  <div class="content">
 
-          <div class="notif-dropdown" id="nav-notif-dropdown">
-            <div class="notif-header">
-              <span>Notifications &amp; Alerts</span>
-              <button id="notif-mark-all-read">Mark all read</button>
+    <!-- Page header -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Renewals</h1>
+        <p class="page-subtitle">Plan statutory renewals before expiry and keep business operations uninterrupted.</p>
+      </div>
+      <button type="button" class="btn-primary" onclick="openRenewalModal('New Statutory Clearance', 'Competent Authority', 'Upcoming')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add expiry record
+      </button>
+    </div>
+
+    <!-- Alert banner -->
+    <div class="alert-banner">
+      <div class="alert-left">
+        <div class="alert-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div>
+          <div class="alert-title">Three approvals need renewal action in the next 90 days</div>
+          <div class="alert-sub">The Factory Licence is the nearest expiry. Document preparation should begin this week.</div>
+        </div>
+      </div>
+      <a href="#upcoming" class="alert-link" onclick="openRenewalModal('Factory Licence', 'Directorate of Industrial Safety & Health', '12 October 2026'); return false;">Review priority items</a>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="stat-row">
+      <div class="stat-card" style="cursor:pointer" onclick="AlgoUI.showToast('3 statutory approvals due within 90 days: Factory Licence, CTO, Fire NOC', 'warning')">
+        <div><div class="stat-label">Due in 90 days</div><div class="stat-num">03</div></div>
+        <div class="stat-icon" style="background:#fef2f2;color:var(--red)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+      </div>
+      <div class="stat-card" style="cursor:pointer" onclick="AlgoUI.showToast('2 renewals in preparation: Factory Licence, CTO', 'info')">
+        <div><div class="stat-label">In preparation</div><div class="stat-num">02</div></div>
+        <div class="stat-icon" style="background:#fffbeb;color:var(--amber)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+      </div>
+      <div class="stat-card" style="cursor:pointer" onclick="AlgoUI.showToast('1 renewal application submitted: Boiler Inspection Renewal', 'info')">
+        <div><div class="stat-label">Submitted</div><div class="stat-num">01</div></div>
+        <div class="stat-icon" style="background:#eff6ff;color:#2563eb">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </div>
+      </div>
+      <div class="stat-card" style="cursor:pointer" onclick="AlgoUI.showToast('8 statutory approvals currently in full compliance', 'success')">
+        <div><div class="stat-label">Current</div><div class="stat-num">08</div></div>
+        <div class="stat-icon" style="background:#ecfdf5;color:#16a34a">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Two-column: renewals list + calendar -->
+    <div class="two-col" id="upcoming">
+
+      <!-- Upcoming renewals -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Upcoming renewals</span>
+          <span class="panel-action" style="cursor:pointer" onclick="AlgoUI.showToast('Sorted by nearest expiry date', 'info')">Sort: nearest expiry ↓</span>
+        </div>
+        <div class="panel-body">
+
+          <!-- Factory Licence – 26 days, Not started -->
+          <div class="renewal-card">
+            <div class="rc-top">
+              <div class="rc-left">
+                <div class="rc-icon" style="background:#fef2f2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                </div>
+                <div>
+                  <div class="rc-name">Factory Licence</div>
+                  <div class="rc-dept">Directorate of Industrial Safety &amp; Health</div>
+                </div>
+              </div>
+              <span class="rc-days days-red">● 26 days left</span>
             </div>
-            <div class="notif-list" id="notif-list-container"></div>
+            <div class="rc-meta">
+              <div class="rc-meta-item">
+                <span class="rc-meta-label">Expiry Date</span>
+                <span class="rc-meta-val">12 October 2026</span>
+              </div>
+              <div class="rc-meta-item" style="text-align:right">
+                <span class="rc-meta-label">Renewal Stage</span>
+                <span class="rc-stage-val stage-red">Not started</span>
+              </div>
+            </div>
+            <div class="rc-bar-bg"><div class="rc-bar-fill" style="width:18%;background:var(--red)"></div></div>
+            <div class="rc-footer">
+              <span class="rc-hint">Recommended filing: 30–45 days before expiry</span>
+              <button class="btn-prepare" onclick="openRenewalModal('Factory Licence', 'Directorate of Industrial Safety', '12 October 2026')">Prepare renewal</button>
+            </div>
+          </div>
+
+          <!-- Consent to Operate – 73 days, Preparation -->
+          <div class="renewal-card">
+            <div class="rc-top">
+              <div class="rc-left">
+                <div class="rc-icon" style="background:#fffbeb">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <div>
+                  <div class="rc-name">Consent to Operate</div>
+                  <div class="rc-dept">Maharashtra Pollution Control Board</div>
+                </div>
+              </div>
+              <span class="rc-days days-amber">● 73 days left</span>
+            </div>
+            <div class="rc-meta">
+              <div class="rc-meta-item">
+                <span class="rc-meta-label">Expiry Date</span>
+                <span class="rc-meta-val">28 November 2026</span>
+              </div>
+              <div class="rc-meta-item" style="text-align:right">
+                <span class="rc-meta-label">Renewal Stage</span>
+                <span class="rc-stage-val stage-amber">Preparation</span>
+              </div>
+            </div>
+            <div class="rc-bar-bg"><div class="rc-bar-fill" style="width:42%;background:var(--amber)"></div></div>
+            <div class="rc-footer">
+              <span class="rc-hint">Recommended filing: 30–45 days before expiry</span>
+              <button class="btn-prepare" onclick="openRenewalModal('Consent to Operate', 'Pollution Control Board', '28 November 2026')">Prepare renewal</button>
+            </div>
+          </div>
+
+          <!-- Fire NOC – 84 days, Documents ready -->
+          <div class="renewal-card">
+            <div class="rc-top">
+              <div class="rc-left">
+                <div class="rc-icon" style="background:#fffbeb">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                </div>
+                <div>
+                  <div class="rc-name">Fire No Objection Certificate</div>
+                  <div class="rc-dept">Fire &amp; Emergency Services</div>
+                </div>
+              </div>
+              <span class="rc-days days-amber">● 84 days left</span>
+            </div>
+            <div class="rc-meta">
+              <div class="rc-meta-item">
+                <span class="rc-meta-label">Expiry Date</span>
+                <span class="rc-meta-val">09 December 2026</span>
+              </div>
+              <div class="rc-meta-item" style="text-align:right">
+                <span class="rc-meta-label">Renewal Stage</span>
+                <span class="rc-stage-val stage-teal">Documents ready</span>
+              </div>
+            </div>
+            <div class="rc-bar-bg"><div class="rc-bar-fill" style="width:62%;background:var(--orange)"></div></div>
+            <div class="rc-footer">
+              <span class="rc-hint">Recommended filing: 30–45 days before expiry</span>
+              <button class="btn-prepare" onclick="openRenewalModal('Fire No Objection Certificate', 'Fire & Emergency Services', '09 December 2026')">Prepare renewal</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Calendar -->
+      <div class="cal-panel">
+        <div class="cal-panel-header">
+          <span class="panel-title">Renewal calendar</span>
+          <a href="#" class="panel-action" onclick="AlgoUI.showToast('Annual compliance schedule for 2026–2027 loaded.', 'info'); return false;">View annual calendar</a>
+        </div>
+        <div class="cal-nav">
+          <span class="cal-month" id="cal-month-label">September 2026</span>
+          <div class="cal-arrows">
+            <div class="cal-arrow" onclick="AlgoUI.showToast('Viewing August 2026', 'info')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></div>
+            <div class="cal-arrow" onclick="AlgoUI.showToast('Viewing October 2026 (Factory Licence expiry: 12 Oct)', 'info')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></div>
           </div>
         </div>
+        <div class="cal-grid">
+          <div class="cal-hdr">Mon</div><div class="cal-hdr">Tue</div><div class="cal-hdr">Wed</div><div class="cal-hdr">Thu</div><div class="cal-hdr">Fri</div><div class="cal-hdr">Sat</div><div class="cal-hdr">Sun</div>
+          <div class="cal-day empty"></div><div class="cal-day empty"></div><div class="cal-day" onclick="AlgoUI.showToast('1 Sep: Monthly GSTR-1 preparation', 'info')">1</div><div class="cal-day">2</div><div class="cal-day">3</div><div class="cal-day">4</div><div class="cal-day">5</div>
+          <div class="cal-day">6</div><div class="cal-day">7</div><div class="cal-day">8</div><div class="cal-day">9</div><div class="cal-day">10</div><div class="cal-day">11</div><div class="cal-day today" onclick="AlgoUI.showToast('Today: 12 Sep 2026 · All active systems running', 'info')">12</div>
+          <div class="cal-day">13</div><div class="cal-day">14</div><div class="cal-day">15</div><div class="cal-day">16</div><div class="cal-day">17</div><div class="cal-day">18</div><div class="cal-day">19</div>
+          <div class="cal-day">20</div><div class="cal-day">21</div><div class="cal-day">22</div><div class="cal-day">23</div><div class="cal-day">24</div><div class="cal-day">25</div><div class="cal-day expiry-amber" onclick="openRenewalModal('Factory Licence', 'Directorate of Industrial Safety', '12 October 2026')">26</div>
+          <div class="cal-day">27</div><div class="cal-day">28</div><div class="cal-day">29</div><div class="cal-day">30</div>
+        </div>
+        <div class="cal-legend">
+          <div class="cal-legend-item" style="cursor:pointer" onclick="openRenewalModal('Factory Licence', 'Directorate of Industrial Safety', '12 October 2026')">
+            <div class="cal-legend-dot" style="background:var(--red)"></div>
+            <div>
+              <div class="cal-legend-text" style="font-weight:700">Factory Licence</div>
+              <div class="cal-legend-sub">Expires 12 October · Click to prepare</div>
+            </div>
+          </div>
+          <div class="cal-legend-item" style="cursor:pointer" onclick="openRenewalModal('Consent to Operate', 'Pollution Control Board', '28 November 2026')">
+            <div class="cal-legend-dot" style="background:var(--amber)"></div>
+            <div>
+              <div class="cal-legend-text" style="font-weight:700">Consent to Operate</div>
+              <div class="cal-legend-sub">Expires 28 November · Click to prepare</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        <a href="profile.html" class="profile-pill dyn-biz-name" title="View Business Profile">
-          Set Up Business Profile
+    <!-- Recommended renewal preparation -->
+    <div class="rec-panel">
+      <div class="rec-header">
+        <div>
+          <div class="rec-title">Recommended renewal preparation</div>
+          <div class="rec-sub">Keep these common records current before initiating your next renewal.</div>
+        </div>
+        <a href="documents.html" class="rec-link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          Open document library
         </a>
-
-        <button class="mobile-toggle" id="mobile-menu-toggle" aria-label="Toggle Menu">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-        </button>
       </div>
-    </div>
-  </header>
-
-  <!-- =========================================================================
-       2. MAIN CONTENT: RENEWALS TRACKER
-       ========================================================================= -->
-  <main class="main-content">
-    <div class="app-container">
-
-      <div class="page-header">
-        <div>
-          <h1>License Renewal Tracking</h1>
-          <p>Monitor active licenses, compliance certificates, validity periods, and statutory renewal deadlines.</p>
+      <div class="rec-items">
+        <div class="rec-item" style="cursor:pointer" onclick="AlgoUI.showToast('Current licence copy is available in Document Library.', 'success')">
+          <div class="rec-num">1</div>
+          <div class="rec-item-text">Current licence copy</div>
         </div>
-        <div>
-          <a href="applications.html" class="btn btn-secondary btn-sm">
-            View Applications Tracker →
-          </a>
+        <div class="rec-item" style="cursor:pointer" onclick="AlgoUI.showToast('Compliance returns verified with DISH portal.', 'success')">
+          <div class="rec-num">2</div>
+          <div class="rec-item-text">Latest compliance returns</div>
         </div>
-      </div>
-
-      <!-- Counter -->
-      <div style="margin-bottom: 0.75rem; font-size: 0.84rem; font-weight: 600; color: var(--slate-600);" id="renewals-count-display">
-        <!-- Dynamically populated -->
-      </div>
-
-      <!-- Renewals Table Container -->
-      <section class="card" style="padding: 0; overflow: hidden;" id="renewals-table-container">
-        <!-- Dynamically populated by script.js -->
-      </section>
-
-    </div>
-  </main>
-
-  <!-- =========================================================================
-       3. SITE FOOTER
-       ========================================================================= -->
-  <footer class="site-footer">
-    <div class="app-container">
-      <div class="footer-inner">
-        <div>
-          <strong>AnumatiSetu</strong> &bull; Business Compliance &amp; Approval Management Platform
+        <div class="rec-item" style="cursor:pointer" onclick="AlgoUI.showToast('Inspection closure reports attached.', 'success')">
+          <div class="rec-num">3</div>
+          <div class="rec-item-text">Inspection closure records</div>
         </div>
-        <div style="display: flex; gap: 1rem;">
-          <a href="dashboard.html">Dashboard</a>
-          <a href="profile.html">Business Profile</a>
-          <a href="approvals.html">Approvals</a>
-          <a href="applications.html">Applications</a>
-          <a href="documents.html">Documents</a>
-          <a href="renewals.html">Renewals</a>
+        <div class="rec-item" style="cursor:pointer" onclick="AlgoUI.showToast('Unit declaration is active and updated.', 'success')">
+          <div class="rec-num">4</div>
+          <div class="rec-item-text">Updated unit declaration</div>
         </div>
       </div>
     </div>
-  </footer>
 
-  <script src="script.js?v=3"></script>
+  </div>
+</div>
+
+<script src="script.js?v=4.1"></script>
 </body>
 </html>
+
+
+
+

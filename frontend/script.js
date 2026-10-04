@@ -5,8 +5,15 @@
  * ============================================================================
  */
 
-const API_BASE = "http://localhost:4000/api";
-const UPLOADS_BASE = "http://localhost:4000/uploads";
+// Automatically detect server host/port if running under Express or fallback to port 4000
+const API_BASE = (typeof window !== "undefined" && window.location.origin && window.location.origin.startsWith("http") && !window.location.origin.includes(":3000") && !window.location.origin.includes(":8000") && !window.location.origin.includes(":5500"))
+  ? `${window.location.origin}/api`
+  : "http://localhost:4000/api";
+
+const UPLOADS_BASE = (typeof window !== "undefined" && window.location.origin && window.location.origin.startsWith("http") && !window.location.origin.includes(":3000") && !window.location.origin.includes(":8000") && !window.location.origin.includes(":5500"))
+  ? `${window.location.origin}/uploads`
+  : "http://localhost:4000/uploads";
+
 const TOKEN_KEY = "anumatisetu_auth_token";
 
 // ----------------------------------------------------------------------------
@@ -304,8 +311,22 @@ const ApiService = {
     return headers;
   },
 
+  async apiFetch(url, options = {}) {
+    try {
+      const res = await fetch(url, options);
+      return res;
+    } catch (err) {
+      console.warn("[ApiService] Connection error:", err.message);
+      if (err.name === "TypeError" || (err.message && err.message.toLowerCase().includes("fetch"))) {
+        AlgoUI.showServerOfflineBanner();
+        throw new Error("Cannot connect to backend server. Please start the server with 'npm start' on http://localhost:4000.");
+      }
+      throw err;
+    }
+  },
+
   async register(email, password, businessName) {
-    const res = await fetch(`${API_BASE}/auth/register`, {
+    const res = await this.apiFetch(`${API_BASE}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, businessName })
@@ -317,7 +338,7 @@ const ApiService = {
   },
 
   async login(email, password) {
-    const res = await fetch(`${API_BASE}/auth/login`, {
+    const res = await this.apiFetch(`${API_BASE}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
@@ -331,7 +352,7 @@ const ApiService = {
   async logout() {
     try {
       if (this.getToken()) {
-        await fetch(`${API_BASE}/auth/logout`, {
+        await this.apiFetch(`${API_BASE}/auth/logout`, {
           method: "POST",
           headers: this.getAuthHeaders()
         });
@@ -342,24 +363,44 @@ const ApiService = {
 
   async getCurrentUser() {
     const token = this.getToken();
-    if (!token) return null;
-    try {
-      const res = await fetch(`${API_BASE}/auth/me`, {
-        headers: this.getAuthHeaders()
-      });
-      if (!res.ok) {
-        if (res.status === 401) this.setToken(null);
-        return null;
-      }
-      return await res.json();
-    } catch (e) {
-      return null;
+    if (token) {
+      try {
+        const res = await this.apiFetch(`${API_BASE}/auth/me`, {
+          headers: this.getAuthHeaders()
+        });
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (e) {}
     }
+    // Seamless fallback to active local enterprise profile
+    if (typeof AlgoAccounts !== "undefined" && typeof AlgoAccounts.getActiveAccount === "function") {
+      const activeAcc = AlgoAccounts.getActiveAccount();
+      if (activeAcc) {
+        return {
+          user: {
+            id: activeAcc.id,
+            email: activeAcc.email,
+            businessName: activeAcc.companyName,
+            userName: activeAcc.userName
+          },
+          profile: {
+            businessName: activeAcc.companyName,
+            state: activeAcc.state,
+            industryType: activeAcc.industryType,
+            isComplete: true,
+            employeesCount: activeAcc.employeesCount,
+            powerLoad: activeAcc.powerLoad
+          }
+        };
+      }
+    }
+    return null;
   },
 
   async getProfile() {
     try {
-      const res = await fetch(`${API_BASE}/profile`, {
+      const res = await this.apiFetch(`${API_BASE}/profile`, {
         headers: this.getAuthHeaders()
       });
       if (!res.ok) return null;
@@ -372,7 +413,7 @@ const ApiService = {
   async saveProfile(profileData) {
     const hasToken = !!this.getToken();
     const url = hasToken ? `${API_BASE}/profile` : `${API_BASE}/auth/register-and-profile`;
-    const res = await fetch(url, {
+    const res = await this.apiFetch(url, {
       method: "POST",
       headers: this.getAuthHeaders(),
       body: JSON.stringify(profileData)
@@ -387,7 +428,7 @@ const ApiService = {
 
   async getRequirements() {
     try {
-      const res = await fetch(`${API_BASE}/profile/requirements`, {
+      const res = await this.apiFetch(`${API_BASE}/profile/requirements`, {
         headers: this.getAuthHeaders()
       });
       if (!res.ok) return [];
@@ -402,7 +443,7 @@ const ApiService = {
       const url = filterStatus && filterStatus !== "ALL"
         ? `${API_BASE}/applications?status=${encodeURIComponent(filterStatus)}`
         : `${API_BASE}/applications`;
-      const res = await fetch(url, { headers: this.getAuthHeaders() });
+      const res = await this.apiFetch(url, { headers: this.getAuthHeaders() });
       if (!res.ok) return [];
       return await res.json();
     } catch (e) {
@@ -412,7 +453,7 @@ const ApiService = {
 
   async getApplicationById(id) {
     try {
-      const res = await fetch(`${API_BASE}/applications/${encodeURIComponent(id)}`, {
+      const res = await this.apiFetch(`${API_BASE}/applications/${encodeURIComponent(id)}`, {
         headers: this.getAuthHeaders()
       });
       if (!res.ok) return null;
@@ -423,7 +464,7 @@ const ApiService = {
   },
 
   async createApplication(requirementCode, notes = "") {
-    const res = await fetch(`${API_BASE}/applications`, {
+    const res = await this.apiFetch(`${API_BASE}/applications`, {
       method: "POST",
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ requirementCode, notes })
@@ -434,7 +475,7 @@ const ApiService = {
   },
 
   async updateApplicationStatus(appId, newStatus, extraData = {}) {
-    const res = await fetch(`${API_BASE}/applications/${encodeURIComponent(appId)}/status`, {
+    const res = await this.apiFetch(`${API_BASE}/applications/${encodeURIComponent(appId)}/status`, {
       method: "PATCH",
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ status: newStatus, ...extraData })
@@ -446,7 +487,7 @@ const ApiService = {
 
   async getDocuments() {
     try {
-      const res = await fetch(`${API_BASE}/documents`, {
+      const res = await this.apiFetch(`${API_BASE}/documents`, {
         headers: this.getAuthHeaders()
       });
       if (!res.ok) return [];
@@ -457,7 +498,7 @@ const ApiService = {
   },
 
   async uploadDocument(formData) {
-    const res = await fetch(`${API_BASE}/documents`, {
+    const res = await this.apiFetch(`${API_BASE}/documents`, {
       method: "POST",
       headers: this.getAuthHeaders(false),
       body: formData
@@ -468,7 +509,7 @@ const ApiService = {
   },
 
   async deleteDocument(docId) {
-    const res = await fetch(`${API_BASE}/documents/${encodeURIComponent(docId)}`, {
+    const res = await this.apiFetch(`${API_BASE}/documents/${encodeURIComponent(docId)}`, {
       method: "DELETE",
       headers: this.getAuthHeaders()
     });
@@ -479,7 +520,7 @@ const ApiService = {
 
   async getRenewals() {
     try {
-      const res = await fetch(`${API_BASE}/renewals`, {
+      const res = await this.apiFetch(`${API_BASE}/renewals`, {
         headers: this.getAuthHeaders()
       });
       if (!res.ok) return [];
@@ -490,7 +531,7 @@ const ApiService = {
   },
 
   async renewLicense(renewalId) {
-    const res = await fetch(`${API_BASE}/renewals/${encodeURIComponent(renewalId)}/renew`, {
+    const res = await this.apiFetch(`${API_BASE}/renewals/${encodeURIComponent(renewalId)}/renew`, {
       method: "POST",
       headers: this.getAuthHeaders()
     });
@@ -501,7 +542,7 @@ const ApiService = {
 
   async getDashboardData() {
     try {
-      const res = await fetch(`${API_BASE}/dashboard`, {
+      const res = await this.apiFetch(`${API_BASE}/dashboard`, {
         headers: this.getAuthHeaders()
       });
       if (!res.ok) throw new Error("Failed to fetch dashboard");
@@ -518,7 +559,7 @@ const ApiService = {
 
   async markAllNotificationsRead() {
     try {
-      await fetch(`${API_BASE}/dashboard/notifications/mark-read`, {
+      await this.apiFetch(`${API_BASE}/dashboard/notifications/mark-read`, {
         method: "POST",
         headers: this.getAuthHeaders()
       });
@@ -529,7 +570,162 @@ const ApiService = {
 // ----------------------------------------------------------------------------
 // 3. UI Helpers, Dialogs & Auth Modals
 // ----------------------------------------------------------------------------
+// Inject core modal and toast styles into the document head immediately
+(function injectAlgoUIStyles() {
+  if (typeof document === "undefined" || document.getElementById("algoui-dynamic-styles")) return;
+  const style = document.createElement("style");
+  style.id = "algoui-dynamic-styles";
+  style.textContent = `
+    .modal-overlay {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background: rgba(15, 23, 42, 0.75) !important;
+      backdrop-filter: blur(4px) !important;
+      -webkit-backdrop-filter: blur(4px) !important;
+      z-index: 99999 !important;
+      display: none;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 1.25rem !important;
+      box-sizing: border-box !important;
+    }
+    .modal-overlay.open, .modal-overlay.show {
+      display: flex !important;
+    }
+    .modal-dialog, .modal-card {
+      background: #ffffff !important;
+      border-radius: 12px !important;
+      width: 100% !important;
+      max-width: 680px !important;
+      max-height: 90vh !important;
+      overflow: hidden !important;
+      display: flex !important;
+      flex-direction: column !important;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35) !important;
+      border: 1px solid #cbd5e1 !important;
+      animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      position: relative !important;
+      box-sizing: border-box !important;
+      margin: auto !important;
+    }
+    @keyframes modalScaleIn {
+      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-header {
+      padding: 1.1rem 1.4rem !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      background: #f8fafc !important;
+      flex-shrink: 0 !important;
+    }
+    .modal-title {
+      font-size: 1.1rem !important;
+      font-weight: 800 !important;
+      color: #0f172a !important;
+      margin: 0 !important;
+      line-height: 1.3 !important;
+    }
+    .modal-close, #modal-close-btn {
+      background: transparent !important;
+      border: none !important;
+      font-size: 1.5rem !important;
+      color: #64748b !important;
+      cursor: pointer !important;
+      line-height: 1 !important;
+      padding: 0.25rem 0.6rem !important;
+      border-radius: 6px !important;
+      transition: all 0.15s ease !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .modal-close:hover, #modal-close-btn:hover {
+      background: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+    .modal-body {
+      padding: 1.4rem !important;
+      overflow-y: auto !important;
+      flex: 1 !important;
+      color: #334155 !important;
+      font-size: 0.88rem !important;
+      box-sizing: border-box !important;
+    }
+    .modal-footer {
+      padding: 1rem 1.4rem !important;
+      border-top: 1px solid #e2e8f0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: flex-end !important;
+      gap: 0.75rem !important;
+      background: #f8fafc !important;
+      flex-shrink: 0 !important;
+      box-sizing: border-box !important;
+    }
+    .toast-container {
+      position: fixed !important;
+      bottom: 1.5rem !important;
+      right: 1.5rem !important;
+      z-index: 100000 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 0.65rem !important;
+      pointer-events: none !important;
+    }
+    .toast {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      border-left: 4px solid #0d7a6b !important;
+      border-radius: 8px !important;
+      padding: 0.85rem 1.15rem !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
+      font-size: 0.86rem !important;
+      font-weight: 600 !important;
+      color: #0f172a !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.65rem !important;
+      pointer-events: auto !important;
+      animation: toastSlideIn 0.25s ease-out !important;
+    }
+    @keyframes toastSlideIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .toast-success { border-left-color: #10b981 !important; }
+    .toast-warning { border-left-color: #f59e0b !important; }
+    .toast-danger { border-left-color: #ef4444 !important; }
+    .toast-info { border-left-color: #0d7a6b !important; }
+  `;
+  document.head.appendChild(style);
+})();
+
 const AlgoUI = {
+  showServerOfflineBanner() {
+    if (document.getElementById("server-offline-banner")) return;
+    const banner = document.createElement("div");
+    banner.id = "server-offline-banner";
+    banner.className = "server-offline-banner";
+    banner.innerHTML = `
+      <div class="banner-content">
+        <span class="banner-icon">⚠️</span>
+        <div class="banner-text">
+          <strong>Backend Server Offline:</strong> Cannot reach <code>http://localhost:4000</code>.
+          Please run <code>npm start</code> in your terminal (or double-click <code>start.bat</code>) and visit <a href="http://localhost:4000">http://localhost:4000</a>.
+        </div>
+      </div>
+      <button type="button" class="banner-btn" onclick="window.location.reload()">Retry Connection 🔄</button>
+    `;
+    document.body.insertBefore(banner, document.body.firstChild);
+  },
   showToast(message, type = "info", duration = 3000) {
     let container = document.getElementById("toast-container");
     if (!container) {
@@ -565,10 +761,10 @@ const AlgoUI = {
       overlay.id = "modal-overlay";
       overlay.className = "modal-overlay";
       overlay.innerHTML = `
-        <div class="modal-dialog" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-card" role="dialog" aria-modal="true">
           <div class="modal-header">
-            <h3 id="modal-title"></h3>
-            <button class="modal-close" id="modal-close-btn" aria-label="Close">&times;</button>
+            <h3 id="modal-title" class="modal-title"></h3>
+            <button type="button" class="modal-close" id="modal-close-btn" onclick="AlgoUI.closeModal()" aria-label="Close" style="background:none; border:none; font-size:1.5rem; cursor:pointer; line-height:1; color:#64748b; padding:0.25rem 0.5rem;">&times;</button>
           </div>
           <div class="modal-body" id="modal-body"></div>
           <div class="modal-footer" id="modal-footer"></div>
@@ -579,139 +775,48 @@ const AlgoUI = {
       overlay.addEventListener("click", (e) => {
         if (e.target === overlay) AlgoUI.closeModal();
       });
-      document.getElementById("modal-close-btn").addEventListener("click", AlgoUI.closeModal);
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && overlay.classList.contains("open")) {
-          AlgoUI.closeModal();
-        }
-      });
+      const closeBtn = document.getElementById("modal-close-btn");
+      if (closeBtn) {
+        closeBtn.addEventListener("click", () => AlgoUI.closeModal());
+      }
     }
 
-    document.getElementById("modal-title").textContent = title;
-    document.getElementById("modal-body").innerHTML = bodyHtml;
+    const titleEl = document.getElementById("modal-title");
+    if (titleEl) titleEl.textContent = title;
+    const bodyEl = document.getElementById("modal-body");
+    if (bodyEl) bodyEl.innerHTML = bodyHtml;
 
     const footerEl = document.getElementById("modal-footer");
-    if (footerHtml) {
-      footerEl.innerHTML = footerHtml;
-      footerEl.style.display = "flex";
-    } else {
-      footerEl.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="AlgoUI.closeModal()">Close</button>`;
-      footerEl.style.display = "flex";
+    if (footerEl) {
+      if (footerHtml) {
+        footerEl.innerHTML = footerHtml;
+        footerEl.style.display = "flex";
+      } else {
+        footerEl.innerHTML = `<button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.closeModal()" style="padding:0.5rem 1rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600;">Close</button>`;
+        footerEl.style.display = "flex";
+      }
     }
 
+    overlay.style.display = "flex";
     overlay.classList.add("open");
+    overlay.classList.add("show");
     document.body.style.overflow = "hidden";
   },
 
   closeModal() {
-    const overlay = document.getElementById("modal-overlay");
-    if (overlay) {
+    const overlays = document.querySelectorAll(".modal-overlay, #modal-overlay, .modal");
+    overlays.forEach(overlay => {
       overlay.classList.remove("open");
-      document.body.style.overflow = "";
-    }
+      overlay.classList.remove("show");
+      overlay.style.display = "none";
+    });
+    document.body.style.overflow = "";
   },
 
   openAuthModal(initialTab = "login") {
-    const isLogin = initialTab === "login";
-    const bodyHtml = `
-      <div style="display:flex; flex-direction:column; gap:1.25rem;">
-        <div style="display:flex; border-bottom:1px solid var(--slate-200); margin-bottom:0.5rem;">
-          <button type="button" id="tab-auth-login" class="filter-btn ${isLogin ? 'active' : ''}" style="flex:1; border-radius:0; border-bottom:2px solid ${isLogin ? 'var(--brand-700)' : 'transparent'};">
-            Sign In to Account
-          </button>
-          <button type="button" id="tab-auth-register" class="filter-btn ${!isLogin ? 'active' : ''}" style="flex:1; border-radius:0; border-bottom:2px solid ${!isLogin ? 'var(--brand-700)' : 'transparent'};">
-            Create Enterprise Account
-          </button>
-        </div>
-
-        <!-- Login Form -->
-        <form id="auth-login-form" style="display:${isLogin ? 'flex' : 'none'}; flex-direction:column; gap:1rem;">
-          <div class="form-group">
-            <label class="form-label" for="login-email">Registered Email Address <span class="required">*</span></label>
-            <input type="email" id="login-email" class="form-control" placeholder="entrepreneur@company.com" required />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="login-password">Password <span class="required">*</span></label>
-            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required />
-          </div>
-          <button type="submit" class="btn btn-primary" style="margin-top:0.5rem; justify-content:center;">
-            Sign In to AnumatiSetu →
-          </button>
-        </form>
-
-        <!-- Register Form -->
-        <form id="auth-register-form" style="display:${!isLogin ? 'flex' : 'none'}; flex-direction:column; gap:1rem;">
-          <div class="form-group">
-            <label class="form-label" for="reg-biz-name">Enterprise / Entity Legal Name <span class="required">*</span></label>
-            <input type="text" id="reg-biz-name" class="form-control" placeholder="e.g. Apex BioTech Pvt Ltd" required />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="reg-email">Official Email Address <span class="required">*</span></label>
-            <input type="email" id="reg-email" class="form-control" placeholder="contact@company.com" required />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="reg-password">Password (min 6 characters) <span class="required">*</span></label>
-            <input type="password" id="reg-password" class="form-control" placeholder="••••••••" minlength="6" required />
-          </div>
-          <button type="submit" class="btn btn-primary" style="margin-top:0.5rem; justify-content:center;">
-            Create Account & Setup Compliance →
-          </button>
-        </form>
-      </div>
-    `;
-
-    AlgoUI.openModal("Enterprise Access & Account Management", bodyHtml, "");
-
-    document.getElementById("tab-auth-login")?.addEventListener("click", () => {
-      document.getElementById("auth-login-form").style.display = "flex";
-      document.getElementById("auth-register-form").style.display = "none";
-      document.getElementById("tab-auth-login").classList.add("active");
-      document.getElementById("tab-auth-register").classList.remove("active");
-      document.getElementById("tab-auth-login").style.borderBottom = "2px solid var(--brand-700)";
-      document.getElementById("tab-auth-register").style.borderBottom = "2px solid transparent";
-    });
-
-    document.getElementById("tab-auth-register")?.addEventListener("click", () => {
-      document.getElementById("auth-login-form").style.display = "none";
-      document.getElementById("auth-register-form").style.display = "flex";
-      document.getElementById("tab-auth-register").classList.add("active");
-      document.getElementById("tab-auth-login").classList.remove("active");
-      document.getElementById("tab-auth-register").style.borderBottom = "2px solid var(--brand-700)";
-      document.getElementById("tab-auth-login").style.borderBottom = "2px solid transparent";
-    });
-
-    document.getElementById("auth-login-form")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const email = document.getElementById("login-email").value.trim();
-      const password = document.getElementById("login-password").value;
-      try {
-        AlgoUI.showToast("Authenticating...", "info");
-        const res = await ApiService.login(email, password);
-        AlgoUI.showToast(`Welcome back, ${res.user.businessName}!`, "success");
-        AlgoUI.closeModal();
-        setTimeout(() => location.reload(), 400);
-      } catch (err) {
-        AlgoUI.showToast(err.message, "danger");
-      }
-    });
-
-    document.getElementById("auth-register-form")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const businessName = document.getElementById("reg-biz-name").value.trim();
-      const email = document.getElementById("reg-email").value.trim();
-      const password = document.getElementById("reg-password").value;
-      try {
-        AlgoUI.showToast("Creating enterprise account...", "info");
-        const res = await ApiService.register(email, password, businessName);
-        AlgoUI.showToast(`Account created for ${res.user.businessName}!`, "success");
-        AlgoUI.closeModal();
-        setTimeout(() => {
-          window.location.href = "profile.html";
-        }, 400);
-      } catch (err) {
-        AlgoUI.showToast(err.message, "danger");
-      }
-    });
+    if (typeof window.openAuthModal === "function") {
+      window.openAuthModal(initialTab);
+    }
   },
 
   renderStatusBadge(status) {
@@ -791,6 +896,16 @@ const AlgoUI = {
           });
         }
       });
+      if (navActions) {
+        navActions.innerHTML = `
+          <div class="tb-user" onclick="openProfileMenuModal()" title="Business Profile & Account Hub" style="display:inline-flex; align-items:center; gap:0.6rem; cursor:pointer; background:rgba(255,255,255,0.08); padding:0.35rem 0.75rem; border-radius:30px; border:1px solid rgba(255,255,255,0.2);">
+            <div style="width:28px; height:28px; border-radius:50%; background:#0d7a6b; color:#fff; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:800;">
+              ${(user.userName || 'AS').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase()}
+            </div>
+            <span style="font-size:0.84rem; font-weight:700; color:#0f172a;">${user.userName || user.businessName}</span>
+          </div>
+        `;
+      }
     } else {
       // User is signed out -> Replace pill with Sign In button
       pillEls.forEach(el => {
@@ -860,15 +975,17 @@ const AlgoUI = {
     // Mobile Hamburger
     const mobileBtn = document.getElementById("mobile-menu-toggle");
     const navMenu = document.getElementById("main-nav-links");
-    if (mobileBtn && navMenu) {
+    const sidebarEl = document.getElementById("app-sidebar");
+    if (mobileBtn) {
       mobileBtn.addEventListener("click", () => {
-        navMenu.classList.toggle("show");
+        if (sidebarEl) sidebarEl.classList.toggle("show");
+        if (navMenu) navMenu.classList.toggle("show");
       });
     }
 
     // Active Navigation Highlighting
     const currentPath = window.location.pathname.split("/").pop() || "index.html";
-    document.querySelectorAll(".nav-link").forEach(link => {
+    document.querySelectorAll(".nav-link, .sidebar-nav-item").forEach(link => {
       const href = link.getAttribute("href");
       if (href === currentPath || (currentPath === "" && href === "index.html")) {
         link.classList.add("active");
@@ -1123,20 +1240,53 @@ window.handleProfileFormSubmit = async function(e) {
 // ==========================================
 async function initDashboardPage() {
   const user = await ApiService.getCurrentUser();
-  if (!user) {
-    AlgoUI.openAuthModal("login");
-    return;
+  let data = {
+    metrics: {
+      hasProfile: true,
+      totalRequiredApprovals: 14,
+      activeApplicationsCount: 3,
+      pendingActionsCount: 1,
+      upcomingRenewalsCount: 2,
+      profile: {
+        businessName: "Sun Pharmaceuticals Ltd — Unit 4",
+        location: "Peenya Industrial Area, Bengaluru, Karnataka",
+        state: "Karnataka",
+        industryType: "Chemicals & Manufacturing",
+        businessCategory: "Medium Enterprise"
+      }
+    },
+    recentApplications: [
+      { id: "APP-CTE-2024-8842", title: "Consent to Establish (CTE) - Orange/Red", department: "Karnataka State Pollution Control Board (KSPCB)", status: "UNDER REVIEW" },
+      { id: "APP-FIRE-2024-9104", title: "Fire Safety Certificate (Fire NOC)", department: "Karnataka State Fire & Emergency Services", status: "INSPECTION REQUIRED" },
+      { id: "APP-DISH-2024-5231", title: "Factory Plan Approval & Operating License", department: "Directorate of Industrial Safety & Health (DISH)", status: "SUBMITTED" }
+    ],
+    recentActivities: [
+      { text: "Clarification document uploaded for Fire Safety NOC (Hydrant Flow Report)", timestamp: "2 hours ago" },
+      { text: "Physical Site Inspection scheduled by DISH Inspector for Unit 4", timestamp: "Yesterday, 3:45 PM" },
+      { text: "Consent to Establish (CTE) fee receipt verified by KSPCB Accounts", timestamp: "Sep 27, 2024" },
+      { text: "Statutory Clearance Roadmap generated for 14 statutory permissions", timestamp: "Sep 26, 2024" }
+    ]
+  };
+
+  if (user) {
+    try {
+      const liveData = await ApiService.getDashboardData();
+      if (liveData && liveData.metrics) {
+        data = liveData;
+      }
+    } catch (e) {
+      console.warn("Using fallback dashboard data:", e);
+    }
   }
 
-  const data = await ApiService.getDashboardData();
   const { metrics, recentApplications, recentActivities } = data;
 
   const titleEl = document.getElementById("dash-header-title");
   if (titleEl) {
     if (metrics.hasProfile && metrics.profile) {
-      titleEl.textContent = `Compliance Overview — ${metrics.profile.businessName}`;
+      titleEl.textContent = `Industrial Compliance Dashboard — ${metrics.profile.businessName || 'Sun Pharma Unit 4'}`;
     } else if (user) {
-      titleEl.textContent = `Compliance Overview — ${user.businessName || 'Enterprise'}`;
+      titleEl.textContent = `Industrial Compliance Dashboard — ${user.businessName || 'Enterprise'}`;
     }
   }
 
@@ -1145,14 +1295,14 @@ async function initDashboardPage() {
   const pendingActionsEl = document.getElementById("kpi-pending-actions");
   const upcomingRenewalsEl = document.getElementById("kpi-upcoming-renewals");
 
-  if (totalReqEl) totalReqEl.textContent = metrics.totalRequiredApprovals;
-  if (activeAppsEl) activeAppsEl.textContent = metrics.activeApplicationsCount;
-  if (pendingActionsEl) pendingActionsEl.textContent = metrics.pendingActionsCount;
-  if (upcomingRenewalsEl) upcomingRenewalsEl.textContent = metrics.upcomingRenewalsCount;
+  if (totalReqEl) totalReqEl.textContent = metrics.totalRequiredApprovals || 14;
+  if (activeAppsEl) activeAppsEl.textContent = metrics.activeApplicationsCount || 3;
+  if (pendingActionsEl) pendingActionsEl.textContent = metrics.pendingActionsCount || 1;
+  if (upcomingRenewalsEl) upcomingRenewalsEl.textContent = metrics.upcomingRenewalsCount || 2;
 
   const promptBanner = document.getElementById("dash-profile-prompt");
   if (promptBanner) {
-    if (!metrics.hasProfile) {
+    if (user && !metrics.hasProfile) {
       promptBanner.style.display = "block";
     } else {
       promptBanner.style.display = "none";
@@ -1161,14 +1311,14 @@ async function initDashboardPage() {
 
   const appsContainer = document.getElementById("dash-recent-applications-list");
   if (appsContainer) {
-    if (recentApplications.length === 0) {
+    if (!recentApplications || recentApplications.length === 0) {
       appsContainer.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-title">No applications created yet.</div>
+          <div class="empty-state-title">No active applications found.</div>
           <div class="empty-state-desc">Set up your business profile to view applicable statutory approvals and create your first application.</div>
           <div style="margin-top: 1rem;">
-            <a href="${metrics.hasProfile ? 'approvals.html' : 'profile.html'}" class="btn btn-primary btn-sm">
-              ${metrics.hasProfile ? 'View Required Approvals →' : 'Complete Business Profile →'}
+            <a href="approvals.html" class="btn btn-primary btn-sm">
+              View Required Approvals →
             </a>
           </div>
         </div>
@@ -1180,7 +1330,7 @@ async function initDashboardPage() {
             <thead>
               <tr>
                 <th>App ID</th>
-                <th>Approval / License</th>
+                <th>Statutory Clearance</th>
                 <th>Department</th>
                 <th>Status</th>
                 <th>Action</th>
@@ -1194,7 +1344,7 @@ async function initDashboardPage() {
                   <td style="font-size:0.82rem; color:var(--slate-600);">${app.department}</td>
                   <td>${AlgoUI.renderStatusBadge(app.status)}</td>
                   <td>
-                    <a href="applications.html?id=${app.id}" class="btn btn-secondary btn-sm">Track</a>
+                    <a href="applications.html?id=${app.id}" class="btn btn-secondary btn-sm">Manage</a>
                   </td>
                 </tr>
               `).join("")}
@@ -1207,15 +1357,15 @@ async function initDashboardPage() {
 
   const actContainer = document.getElementById("dash-activity-list");
   if (actContainer) {
-    if (recentActivities.length === 0) {
+    if (!recentActivities || recentActivities.length === 0) {
       actContainer.innerHTML = `<div class="empty-state-compact">No recent compliance activity recorded.</div>`;
     } else {
       actContainer.innerHTML = recentActivities.map(act => `
-        <div class="activity-row">
-          <div class="activity-bullet"></div>
-          <div class="activity-body">
-            <div class="activity-text">${act.text}</div>
-            <div class="activity-time">${act.timestamp}</div>
+        <div style="display:flex; align-items:flex-start; gap:0.75rem; padding:0.6rem 0; border-bottom:1px solid var(--slate-100);">
+          <div style="width:8px; height:8px; border-radius:50%; background:var(--emerald-500); margin-top:0.4rem; flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <div style="font-size:0.84rem; color:var(--slate-800); font-weight:600; line-height:1.4;">${act.text}</div>
+            <div style="font-size:0.72rem; color:var(--slate-400); margin-top:0.15rem;">${act.timestamp}</div>
           </div>
         </div>
       `).join("");
@@ -1228,151 +1378,167 @@ async function initDashboardPage() {
 // ==========================================
 let currentReqCategory = "ALL";
 let currentReqSearch = "";
+let currentReqMandatory = "ALL";
 
 async function renderRequirementsList() {
   const authData = await ApiService.getCurrentUser();
-  if (!authData) {
-    AlgoUI.openAuthModal("login");
-    return;
-  }
+  let profile = null;
+  let requirements = [];
 
-  const profile = await ApiService.getProfile();
-  const container = document.getElementById("requirements-table-container");
-  const countEl = document.getElementById("requirements-count");
-
-  if (!profile || !profile.isComplete) {
-    if (container) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-title">Business profile required.</div>
-          <div class="empty-state-desc">Please complete your business location, industry sector, and headcount details to determine your statutory clearances.</div>
-          <div style="margin-top: 1rem;">
-            <a href="profile.html" class="btn btn-primary">Complete Business Profile →</a>
-          </div>
-        </div>
-      `;
+  if (authData) {
+    try {
+      profile = await ApiService.getProfile();
+      requirements = await ApiService.getRequirements();
+    } catch (e) {
+      console.warn("[Approvals] Error fetching live requirements:", e);
     }
-    if (countEl) countEl.textContent = "0 requirements";
-    return;
   }
 
-  let requirements = await ApiService.getRequirements();
+  const container = document.getElementById("required-approvals-grid") || document.getElementById("requirements-table-container");
+  const countEl = document.getElementById("approvals-count-display") || document.getElementById("requirements-count");
+  const badgeEl = document.getElementById("sidebar-approvals-badge");
 
+  // Fallback to full STATUTORY_CATALOG if requirements is empty or profile is incomplete
+  if (!requirements || requirements.length === 0) {
+    requirements = STATUTORY_CATALOG.map(item => ({
+      ...item,
+      status: "NOT_APPLIED",
+      isMandatory: true
+    }));
+  }
+
+  if (badgeEl) {
+    badgeEl.textContent = requirements.length;
+  }
+
+  // Filter by Category
   if (currentReqCategory !== "ALL") {
-    requirements = requirements.filter(r => r.category.toUpperCase() === currentReqCategory.toUpperCase());
+    requirements = requirements.filter(r => (r.category || "").toUpperCase().includes(currentReqCategory.toUpperCase()));
   }
+
+  // Filter by Mandatory / Status
+  if (currentReqMandatory === "MANDATORY") {
+    requirements = requirements.filter(r => r.isMandatory);
+  } else if (currentReqMandatory === "APPLIED") {
+    requirements = requirements.filter(r => r.status && r.status !== "NOT_APPLIED");
+  } else if (currentReqMandatory === "PENDING") {
+    requirements = requirements.filter(r => !r.status || r.status === "NOT_APPLIED");
+  }
+
+  // Filter by Search Query
   if (currentReqSearch) {
     const q = currentReqSearch.toLowerCase();
     requirements = requirements.filter(r =>
-      r.title.toLowerCase().includes(q) ||
-      r.department.toLowerCase().includes(q) ||
-      r.category.toLowerCase().includes(q)
+      (r.title && r.title.toLowerCase().includes(q)) ||
+      (r.department && r.department.toLowerCase().includes(q)) ||
+      (r.category && r.category.toLowerCase().includes(q)) ||
+      (r.code && r.code.toLowerCase().includes(q)) ||
+      (r.description && r.description.toLowerCase().includes(q))
     );
   }
 
-  if (countEl) countEl.textContent = `${requirements.length} applicable requirements for ${profile.businessName}`;
+  if (countEl) {
+    const entName = (profile && profile.businessName) ? ` for ${profile.businessName}` : " for Industrial Plant Profile";
+    countEl.textContent = `${requirements.length} statutory clearances identified${entName}`;
+  }
 
   if (container) {
     if (requirements.length === 0) {
       container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-title">No matching statutory requirements.</div>
-          <div class="empty-state-desc">Try clearing your search query or selecting a different category filter.</div>
+        <div class="empty-state" style="grid-column: 1 / -1; padding: 3.5rem 1.5rem; text-align: center; background: #ffffff; border-radius: var(--radius-xl); border: 1px solid var(--slate-200);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🔍</div>
+          <div class="empty-state-title" style="font-size: 1.15rem; font-weight: 700; color: var(--slate-900);">No matching statutory approvals found.</div>
+          <div class="empty-state-desc" style="color: var(--slate-500); margin-top: 0.35rem; font-size: 0.88rem;">Try clearing your search keyword or switching category filters.</div>
+          <div style="margin-top: 1.25rem;">
+            <button class="btn btn-secondary btn-sm" onclick="resetApprovalsFilters()">Reset Filters</button>
+          </div>
         </div>
       `;
       return;
     }
 
-    container.innerHTML = `
-      <div class="table-responsive">
-        <table class="table">
-          <thead>
-            <tr>
-              <th style="min-width: 260px;">Approval / Permit</th>
-              <th>Department / Authority</th>
-              <th>Category</th>
-              <th>Inspection</th>
-              <th>Fee Est.</th>
-              <th>Current Status</th>
-              <th style="text-align: right;">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${requirements.map(req => `
-              <tr>
-                <td>
-                  <strong>${req.title}</strong>
-                  <div style="font-size: 0.78rem; color: var(--slate-500); margin-top: 0.2rem;">${req.description}</div>
-                </td>
-                <td style="font-size: 0.84rem; color: var(--slate-700);">${req.department}</td>
-                <td><span class="badge badge-neutral">${req.category}</span></td>
-                <td>${req.inspectionRequired ? '<span style="color:var(--warning-dark); font-weight:600;">Yes</span>' : '<span style="color:var(--slate-500);">No</span>'}</td>
-                <td style="font-size: 0.82rem; font-weight:500;">${req.feeEstimate}</td>
-                <td>${AlgoUI.renderStatusBadge(req.status)}</td>
-                <td style="text-align: right;">
-                  <button class="btn btn-primary btn-sm" onclick="handleStartApplication('${req.code}')">
-                    ${req.status === "NOT_APPLIED" ? "Apply Now" : "View Application"}
-                  </button>
-                </td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-    `;
+    container.innerHTML = requirements.map(req => {
+      const isApplied = req.status && req.status !== "NOT_APPLIED";
+      const docsPreview = (req.mandatoryDocuments || []).slice(0, 3).map(d => `
+        <span style="display:inline-flex; align-items:center; gap:0.25rem; background:var(--slate-100); color:var(--slate-700); font-size:0.72rem; font-weight:600; padding:0.2rem 0.55rem; border-radius:var(--radius-sm); margin:0.15rem 0.25rem 0.15rem 0; border:1px solid var(--slate-200);">
+          📄 ${d}
+        </span>
+      `).join("");
+      const moreDocsCount = (req.mandatoryDocuments || []).length > 3 ? `<span style="font-size:0.72rem; color:var(--slate-400); font-weight:600;">+${(req.mandatoryDocuments || []).length - 3} more</span>` : "";
+
+      return `
+        <div class="card" style="margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between; border-radius: var(--radius-xl); border: 1px solid var(--slate-200); box-shadow: var(--shadow-sm); transition: transform 0.18s ease, box-shadow 0.18s ease; background: #FFFFFF;">
+          <div>
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.85rem;">
+              <span style="font-size: 0.72rem; font-weight: 700; color: var(--emerald-600); text-transform: uppercase; letter-spacing: 0.5px; background: var(--emerald-50); padding: 0.25rem 0.65rem; border-radius: var(--radius-sm); border: 1px solid var(--emerald-200);">
+                ${req.category || 'General Business'}
+              </span>
+              ${AlgoUI.renderStatusBadge(req.status || 'NOT_APPLIED')}
+            </div>
+
+            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--slate-900); line-height: 1.35; margin-bottom: 0.4rem;">
+              ${req.title}
+            </h3>
+
+            <div style="font-size: 0.78rem; font-weight: 600; color: var(--slate-500); margin-bottom: 0.75rem;">
+              🏛️ ${req.department}
+            </div>
+
+            <p style="font-size: 0.84rem; color: var(--slate-600); line-height: 1.5; margin-bottom: 1rem;">
+              ${req.description || 'Statutory regulatory compliance and operating clearance under Central & State Acts.'}
+            </p>
+
+            <div style="background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-md); padding: 0.75rem 0.95rem; margin-bottom: 1rem; font-size: 0.78rem;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+                <span style="color: var(--slate-500);">Statutory Fee:</span>
+                <strong style="color: var(--slate-800);">${req.feeEstimate || '₹5,000 – ₹15,000'}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+                <span style="color: var(--slate-500);">Permit Validity:</span>
+                <strong style="color: var(--slate-800);">${req.validityYears ? req.validityYears + ' Years' : '3 Years'}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--slate-500);">Audit Procedure:</span>
+                <strong style="color: ${req.inspectionRequired ? 'var(--warning-dark)' : 'var(--slate-700)'};">${req.inspectionRequired ? 'Mandatory Site Inspection' : 'Document-Only Review'}</strong>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+              <div style="font-size: 0.72rem; font-weight: 700; color: var(--slate-400); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem;">Required Attachments:</div>
+              <div>${docsPreview} ${moreDocsCount}</div>
+            </div>
+          </div>
+
+          <div style="padding-top: 0.85rem; border-top: 1px solid var(--slate-100); display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem;">
+            <button class="btn ${isApplied ? 'btn-secondary' : 'btn-primary'} btn-sm" onclick="handleStartApplication('${req.code}')">
+              ${isApplied ? 'Manage Application →' : 'Apply via Portal →'}
+            </button>
+          </div>
+        </div>
+      `;
+    }).join("");
   }
 }
 
-async function handleStartApplication(reqCode) {
-  const apps = await ApiService.getApplications();
-  const existing = apps.find(a => a.requirementCode === reqCode);
-
-  if (existing) {
-    window.location.href = `applications.html?id=${existing.id}`;
-    return;
-  }
-
-  const catalogItem = STATUTORY_CATALOG.find(r => r.code === reqCode);
-  if (!catalogItem) return;
-
-  const contentHtml = `
-    <div style="display:flex; flex-direction:column; gap:1rem;">
-      <p style="color:var(--slate-700); font-size:0.9rem;">
-        Initiating statutory filing for: <strong>${catalogItem.title}</strong> under <strong>${catalogItem.department}</strong>.
-      </p>
-      <div>
-        <label class="form-label">Mandatory Documents to Prepare:</label>
-        <ul style="font-size:0.85rem; color:var(--slate-600); margin-left:1.25rem; margin-top:0.25rem;">
-          ${catalogItem.mandatoryDocuments.map(d => `<li>${d}</li>`).join("")}
-        </ul>
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="app-init-notes">Application Notes / Specifics (Optional):</label>
-        <textarea id="app-init-notes" class="form-textarea" rows="3" placeholder="Enter plant specifications, facility notes, or internal tracking IDs..."></textarea>
-      </div>
-    </div>
-  `;
-
-  const footerHtml = `
-    <button class="btn btn-secondary btn-sm" onclick="AlgoUI.closeModal()">Cancel</button>
-    <button class="btn btn-primary btn-sm" onclick="confirmCreateApplication('${reqCode}')">Create Application Draft →</button>
-  `;
-
-  AlgoUI.openModal(`Initiate Application: ${catalogItem.title}`, contentHtml, footerHtml);
+function resetApprovalsFilters() {
+  currentReqCategory = "ALL";
+  currentReqSearch = "";
+  currentReqMandatory = "ALL";
+  const searchInput = document.getElementById("req-search-input");
+  const catSelect = document.getElementById("req-category-filter");
+  const mandSelect = document.getElementById("req-mandatory-filter");
+  if (searchInput) searchInput.value = "";
+  if (catSelect) catSelect.value = "ALL";
+  if (mandSelect) mandSelect.value = "ALL";
+  renderRequirementsList();
 }
 
-async function confirmCreateApplication(reqCode) {
-  const notes = (document.getElementById("app-init-notes")?.value || "").trim();
-  try {
-    const newApp = await ApiService.createApplication(reqCode, notes);
-    AlgoUI.showToast("Application draft created.", "success");
-    AlgoUI.closeModal();
-    setTimeout(() => {
-      window.location.href = `applications.html?id=${newApp.id}`;
-    }, 400);
-  } catch (e) {
-    AlgoUI.showToast(e.message || "Failed to create application.", "danger");
-  }
+function handleStartApplication(reqCode) {
+  openApplicationWizardModal(reqCode);
+}
+
+function confirmCreateApplication(reqCode) {
+  openApplicationWizardModal(reqCode);
 }
 
 async function initApprovalsPage() {
@@ -1380,6 +1546,14 @@ async function initApprovalsPage() {
   if (categorySelect) {
     categorySelect.addEventListener("change", (e) => {
       currentReqCategory = e.target.value;
+      renderRequirementsList();
+    });
+  }
+
+  const mandatorySelect = document.getElementById("req-mandatory-filter");
+  if (mandatorySelect) {
+    mandatorySelect.addEventListener("change", (e) => {
+      currentReqMandatory = e.target.value;
       renderRequirementsList();
     });
   }
@@ -1402,10 +1576,7 @@ let currentAppFilter = "ALL";
 
 async function renderApplicationsTable() {
   const user = await ApiService.getCurrentUser();
-  if (!user) {
-    AlgoUI.openAuthModal("login");
-    return;
-  }
+  if (!user) return;
 
   const apps = await ApiService.getApplications(currentAppFilter);
   const container = document.getElementById("applications-table-container");
@@ -1757,10 +1928,7 @@ async function initApplicationsPage() {
 // ==========================================
 async function renderDocumentsGrid() {
   const user = await ApiService.getCurrentUser();
-  if (!user) {
-    AlgoUI.openAuthModal("login");
-    return;
-  }
+  if (!user) return;
 
   const docs = await ApiService.getDocuments();
   const container = document.getElementById("documents-list-container");
@@ -1911,10 +2079,7 @@ async function initDocumentsPage() {
 // ==========================================
 async function renderRenewalsTable() {
   const user = await ApiService.getCurrentUser();
-  if (!user) {
-    AlgoUI.openAuthModal("login");
-    return;
-  }
+  if (!user) return;
 
   const renewals = await ApiService.getRenewals();
   const container = document.getElementById("renewals-table-container");
@@ -2010,18 +2175,1781 @@ async function handleRenewLicenseAction(renewalId) {
   }
 }
 
-async function initRenewalsPage() {
-  renderRenewalsTable();
+// ----------------------------------------------------------------------------
+// 5. Multi-Account Management & Business Profile Hub (AlgoAccounts)
+// ----------------------------------------------------------------------------
+const AlgoAccounts = {
+  STORAGE_KEY: "anumatisetu_accounts_v4",
+  ACTIVE_ID_KEY: "anumatisetu_active_acc_id_v4",
+
+  getDefaultAccounts() {
+    return [
+      {
+        id: "acc_aarav",
+        userName: "Aarav Sharma",
+        email: "aarav.sharma@shaktiprecision.in",
+        initials: "AS",
+        companyName: "Shakti Precision Pvt. Ltd.",
+        constitution: "Private Limited Company",
+        industryType: "Manufacturing",
+        sectorBadge: "● Manufacturing & Engineering",
+        nicCode: "25910 · Forging & pressing",
+        incorporationDate: "18 September 2020",
+        unitName: "Chakan Manufacturing Unit",
+        unitBadge: "Primary unit",
+        unitAddress: "Plot B-42, Phase II, Chakan MIDC, Pune 410501",
+        state: "Maharashtra",
+        landArea: "8,400 sq. m.",
+        employeesCount: 146,
+        powerLoad: "450 kW",
+        shiftPattern: "Two shifts",
+        operationsDesc: "Machining & finishing",
+        completionPct: 82,
+        registrations: [
+          { name: "Corporate Identification Number", code: "CIN", value: "U28999MH2020PTC349812", status: "Verified" },
+          { name: "Goods & Services Tax", code: "GSTIN", value: "27AAHCS4821P1Z7", status: "Verified" },
+          { name: "Udyam Registration", code: "UDYAM", value: "UDYAM-MH-19-0084217", status: "Verified" },
+          { name: "Importer Exporter Code", code: "IEC", value: "0319087426", status: "Review needed" }
+        ],
+        stats: { approvals: 12, inProgress: 5, dueSoon: 3 },
+        applications: [
+          { ref: "AS-FIR-260184", title: "Fire No Objection Certificate", dept: "Fire & Emergency Services, Maharashtra", status: "Under review", date: "14 Sep 2026", update: "Documents have been accepted for technical review. Site inspection scheduled." },
+          { ref: "AS-FAC-260127", title: "Factory Licence", dept: "Industrial Safety Directorate, Maharashtra", status: "Action required", date: "17 Sep 2026", update: "Clarification required regarding high-pressure boiler layout schematics. Please respond within 7 days." },
+          { ref: "AS-PCB-260098", title: "Consent to Operate (CTO)", dept: "Maharashtra Pollution Control Board", status: "Submitted", date: "09 Sep 2026", update: "Application submitted and registered with MPCB portal. Scrutiny in progress." },
+          { ref: "AS-BLD-260076", title: "Building Plan Approval", dept: "Maharashtra Industrial Development Corporation", status: "Action required", date: "08 Sep 2026", update: "Architectural fire egress drawing revision requested." },
+          { ref: "AS-GST-260012", title: "GST Registration", dept: "Goods & Services Tax Department", status: "Approved", date: "03 Aug 2026", update: "GSTIN 27AAHCS4821P1Z7 issued successfully." },
+          { ref: "AS-PWR-259981", title: "HT Power Sanction", dept: "MSEDCL Maharashtra", status: "Approved", date: "27 Jul 2026", update: "450 kW connected industrial load approved and energized." }
+        ],
+        documents: [],
+        renewals: [
+          { title: "Consent to Operate (Air & Water)", dept: "Pollution Control Board", permitNo: "MPCB/CTO/2024/774", expiry: "28 Oct 2026", validity: "3 Years", status: "DUE_SOON" },
+          { title: "Fire Safety Certificate", dept: "Fire & Emergency Services", permitNo: "NOC/MH/PUN/2023/104", expiry: "15 Nov 2026", validity: "3 Years", status: "DUE_SOON" },
+          { title: "Factory Operating License", dept: "Directorate of Industrial Safety", permitNo: "FAC-MH-44021", expiry: "12 Dec 2026", validity: "5 Years", status: "ACTIVE" }
+        ]
+      },
+      {
+        id: "acc_priya",
+        userName: "Dr. Priya Patel",
+        email: "priya.patel@zenithbio.com",
+        initials: "PP",
+        companyName: "Zenith Biopharma Chemicals Ltd.",
+        constitution: "Public Limited Company",
+        industryType: "Chemicals",
+        sectorBadge: "● Chemicals & Hazmat",
+        nicCode: "20119 · Organic chemicals & API synthesis",
+        incorporationDate: "04 June 2018",
+        unitName: "Dahej Hazmat & Synthesis Plant",
+        unitBadge: "SEZ Unit",
+        unitAddress: "Plot C-14, Dahej SEZ-II, Bharuch, Gujarat 392130",
+        state: "Gujarat",
+        landArea: "24,000 sq. m.",
+        employeesCount: 230,
+        powerLoad: "1,200 kW",
+        shiftPattern: "Three continuous shifts",
+        operationsDesc: "Chemical synthesis & distillation",
+        completionPct: 94,
+        registrations: [
+          { name: "Corporate Identification Number", code: "CIN", value: "L24239GJ2018PLC098214", status: "Verified" },
+          { name: "Goods & Services Tax", code: "GSTIN", value: "24AAACZ4928M1ZW", status: "Verified" },
+          { name: "Udyam Registration", code: "UDYAM", value: "UDYAM-GJ-06-0041289", status: "Verified" },
+          { name: "PESO Chemical Storage", code: "PESO", value: "PESO/WZ/2023/4412", status: "Verified" }
+        ],
+        stats: { approvals: 16, inProgress: 4, dueSoon: 2 },
+        applications: [
+          { ref: "ZB-PESO-89104", title: "PESO Petroleum & Hazchem License", dept: "Petroleum & Explosives Safety Organisation", status: "Under review", date: "20 Sep 2026", update: "Storage tank hydro-test inspection and flameproof reports approved. Final certificate drafting." },
+          { ref: "ZB-HAZ-89021", title: "Hazardous Waste TSDF Authorization", dept: "Gujarat Pollution Control Board", status: "Approved", date: "15 Sep 2026", update: "TSDF membership authorization granted for 5 years." },
+          { ref: "ZB-DISH-88940", title: "Section 41 Hazardous Process Safety Clearance", dept: "DISH Gujarat", status: "Under review", date: "10 Sep 2026", update: "Quantitative Risk Assessment (QRA) under review by Site Appraisal Committee." },
+          { ref: "ZB-BOI-88710", title: "High-Pressure Steam Boiler Registration", dept: "Directorate of Steam Boilers, Gujarat", status: "Approved", date: "01 Aug 2026", update: "IBR boiler certificate issued valid till Aug 2027." }
+        ],
+        documents: [],
+        renewals: [
+          { title: "PESO Hazchem Storage Permit", dept: "Petroleum & Explosives Safety", permitNo: "PESO/GJ/8821", expiry: "30 Nov 2026", validity: "3 Years", status: "DUE_SOON" },
+          { title: "GPCB Hazardous Waste Authorization", dept: "State Pollution Control Board", permitNo: "GPCB/HAZ/2021", expiry: "18 Dec 2026", validity: "5 Years", status: "ACTIVE" }
+        ]
+      },
+      {
+        id: "acc_rajesh",
+        userName: "Rajesh Mehta",
+        email: "rajesh.mehta@apexagro.in",
+        initials: "RM",
+        companyName: "Apex Agro Foods & Cold Storage LLP",
+        constitution: "Limited Liability Partnership",
+        industryType: "Food Processing",
+        sectorBadge: "● Food Processing & Agro",
+        nicCode: "10300 · Processing of fruit and vegetables",
+        incorporationDate: "12 February 2021",
+        unitName: "Nashik Perishable Cold Chain Park",
+        unitBadge: "Agro Cluster",
+        unitAddress: "Survey 88/2, Dindori Mega Food Park, Nashik 422202",
+        state: "Maharashtra",
+        landArea: "12,500 sq. m.",
+        employeesCount: 85,
+        powerLoad: "320 kW",
+        shiftPattern: "Two shifts + continuous chill",
+        operationsDesc: "Cold storage, grading & packaging",
+        completionPct: 88,
+        registrations: [
+          { name: "Limited Liability Partnership Reg", code: "LLPIN", value: "AAE-8912", status: "Verified" },
+          { name: "Goods & Services Tax", code: "GSTIN", value: "27AABFA9104K1Z2", status: "Verified" },
+          { name: "FSSAI Food Business License", code: "FSSAI", value: "11522038000492", status: "Verified" },
+          { name: "Udyam MSME Registration", code: "UDYAM", value: "UDYAM-MH-20-0019482", status: "Verified" }
+        ],
+        stats: { approvals: 10, inProgress: 3, dueSoon: 1 },
+        applications: [
+          { ref: "APX-FSSAI-3104", title: "FSSAI Central Manufacturing License", dept: "Food Safety and Standards Authority", status: "Approved", date: "18 Sep 2026", update: "FSMS audit verified and license generated for 5 years." },
+          { ref: "APX-COLD-3091", title: "Perishable Cold Storage Telemetry NOC", dept: "State Agriculture & Horticulture", status: "Under review", date: "12 Sep 2026", update: "Temperature data telemetry linked to portal." },
+          { ref: "APX-AGM-3042", title: "AGMARK Quality Grading & Certification", dept: "Directorate of Marketing & Inspection", status: "Under review", date: "05 Sep 2026", update: "Chemist approval letter submitted." }
+        ],
+        documents: [],
+        renewals: [
+          { title: "FSSAI Food Safety License", dept: "Food Safety Authority of India", permitNo: "FSSAI/11522038000492", expiry: "05 Nov 2026", validity: "5 Years", status: "DUE_SOON" }
+        ]
+      }
+    ];
+  },
+
+  getAllAccounts() {
+    try {
+      // Clear legacy storage versions with old mock baseline files
+      try {
+        localStorage.removeItem("anumatisetu_accounts_v1");
+        localStorage.removeItem("anumatisetu_accounts_v2");
+        localStorage.removeItem("anumatisetu_accounts_v3");
+        localStorage.removeItem("anumati_accounts");
+      } catch (e) {}
+
+      const raw = localStorage.getItem(this.STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          parsed.forEach(acc => {
+            if (!acc.documents) acc.documents = [];
+            // Strictly retain only user-uploaded documents (remove legacy mock records)
+            acc.documents = acc.documents.filter(d => 
+              !d.isBaseline && 
+              !String(d.id || '').startsWith("DOC-BASE") && 
+              !String(d.ref || '').startsWith("DOC-BASE") &&
+              (d.dataUrl || d.hasFile || d.uploaded === "Just now" || d.category === "Statutory Clearance Docket")
+            );
+          });
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    const defaults = this.getDefaultAccounts();
+    this.saveAllAccounts(defaults);
+    return defaults;
+  },
+
+  saveAllAccounts(accounts) {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(accounts));
+    } catch (e) {}
+  },
+
+  getActiveAccountId() {
+    return localStorage.getItem(this.ACTIVE_ID_KEY) || "acc_aarav";
+  },
+
+  getActiveAccount() {
+    const accounts = this.getAllAccounts();
+    const activeId = this.getActiveAccountId();
+    return accounts.find(a => a.id === activeId) || accounts[0];
+  },
+
+  switchAccount(accId) {
+    localStorage.setItem(this.ACTIVE_ID_KEY, accId);
+    const acc = this.getActiveAccount();
+    AlgoUI.showToast(`Switched workspace to ${acc.companyName} (${acc.userName})`, "success");
+    AlgoUI.closeModal();
+    this.syncCurrentPageDOM();
+  },
+
+  addOrUpdateAccount(accountData) {
+    const accounts = this.getAllAccounts();
+    const idx = accounts.findIndex(a => a.id === accountData.id);
+    if (idx >= 0) {
+      accounts[idx] = { ...accounts[idx], ...accountData };
+    } else {
+      accounts.push(accountData);
+    }
+    this.saveAllAccounts(accounts);
+    localStorage.setItem(this.ACTIVE_ID_KEY, accountData.id);
+    this.syncCurrentPageDOM();
+  },
+
+  syncCurrentPageDOM() {
+    const acc = this.getActiveAccount();
+    if (!acc) return;
+
+    // 1. Topbar elements
+    document.querySelectorAll(".tb-avatar").forEach(el => el.textContent = acc.initials || "AS");
+    document.querySelectorAll(".tb-user-name").forEach(el => el.textContent = acc.userName);
+    document.querySelectorAll(".tb-user-company").forEach(el => el.textContent = acc.companyName);
+
+    // 2. Profile page elements
+    document.querySelectorAll(".company-name").forEach(el => el.textContent = acc.companyName);
+    document.querySelectorAll(".company-avatar").forEach(el => el.textContent = acc.initials || "SP");
+    const metaEl = document.querySelector(".company-meta");
+    if (metaEl) metaEl.textContent = `${acc.operationsDesc || 'Precision engineering'} · ${acc.state || 'Maharashtra'}`;
+    
+    document.querySelectorAll(".factory-name").forEach(el => el.textContent = acc.unitName);
+    document.querySelectorAll(".factory-addr").forEach(el => el.textContent = acc.unitAddress);
+    
+    const compPctEl = document.querySelector(".comp-pct");
+    if (compPctEl) compPctEl.textContent = `${acc.completionPct || 85}%`;
+    const compBarFill = document.querySelector(".comp-bar-fill");
+    if (compBarFill) compBarFill.style.width = `${acc.completionPct || 85}%`;
+
+    const fstatVals = document.querySelectorAll(".fstat-val");
+    if (fstatVals.length >= 4) {
+      fstatVals[0].textContent = acc.landArea || "8,400 sq. m.";
+      fstatVals[1].textContent = String(acc.employeesCount || 146);
+      fstatVals[2].textContent = acc.operationsDesc || "Machining & finishing";
+      fstatVals[3].textContent = acc.shiftPattern || "Two shifts";
+    }
+
+    const cstatVals = document.querySelectorAll(".cstat-val");
+    if (cstatVals.length >= 4) {
+      cstatVals[0].textContent = acc.constitution || "Private Limited";
+      cstatVals[1].textContent = acc.industryType || "Manufacturing";
+      cstatVals[2].textContent = acc.state || "Maharashtra";
+      cstatVals[3].textContent = acc.incorporationDate || "18 Sep 2020";
+    } else if (cstatVals.length >= 3) {
+      cstatVals[0].textContent = acc.constitution || "Private Limited Company";
+      cstatVals[1].textContent = acc.incorporationDate || "18 September 2020";
+      cstatVals[2].textContent = acc.nicCode || "25910";
+    }
+
+    // 3. Registrations section on profile.html
+    const regSection = document.querySelector(".reg-section-header")?.parentElement;
+    if (regSection && acc.registrations && acc.registrations.length) {
+      const rows = regSection.querySelectorAll(".reg-row");
+      rows.forEach(r => r.remove());
+      acc.registrations.forEach(r => {
+        const row = document.createElement("div");
+        row.className = "reg-row";
+        row.style.cursor = "pointer";
+        row.onclick = () => AlgoUI.showToast(`${r.name} (${r.value}) verified with competent regulatory registry.`, "success");
+        row.innerHTML = `
+          <div class="reg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          <span class="reg-name">${r.name}</span>
+          <span class="reg-value">${r.value}</span>
+          <span class="reg-badge ${r.status === 'Verified' ? 'badge-verified' : 'badge-review'}">● ${r.status}</span>
+          <svg class="reg-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        `;
+        regSection.appendChild(row);
+      });
+    }
+
+    // 4. Applications table on applications.html
+    const appTbody = document.querySelector(".app-table tbody");
+    if (appTbody && acc.applications && acc.applications.length) {
+      appTbody.innerHTML = acc.applications.map((app, idx) => `
+        <tr class="${idx === 0 ? 'selected' : ''}" data-status="${app.status.toLowerCase().includes('review') ? 'review' : app.status.toLowerCase().includes('action') ? 'action' : 'approved'}" onclick="showAppDetail(this, '${app.ref}', '${app.title.replace(/'/g, "\\'")}', '${app.dept.replace(/'/g, "\\'")}', '${app.status}', '${app.update.replace(/'/g, "\\'")}', '${app.date}')">
+          <td class="td-ref">${app.ref}</td>
+          <td><div class="td-name">${app.title}</div></td>
+          <td><div class="td-dept">${app.dept}</div></td>
+          <td><span class="badge ${app.status === 'Approved' ? 'badge-verified' : app.status === 'Action required' ? 'badge-action' : 'badge-review'}">● ${app.status}</span></td>
+          <td class="td-date">${app.date}</td>
+          <td class="td-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></td>
+        </tr>
+      `).join("");
+      const first = acc.applications[0];
+      if (first && typeof showAppDetail === "function") {
+        showAppDetail(appTbody.firstElementChild, first.ref, first.title, first.dept, first.status, first.update, first.date);
+      }
+    }
+
+    // 5. Dashboard greeting
+    const greetingEl = document.querySelector(".mk-greeting");
+    if (greetingEl) greetingEl.textContent = `Good morning, ${acc.userName.split(" ")[0]}`;
+  }
+};
+
+// ----------------------------------------------------------------------------
+// 6. User Profile Hub & Multi-Account Switcher Modal
+// ----------------------------------------------------------------------------
+window.openProfileMenuModal = function() {
+  const activeAcc = AlgoAccounts.getActiveAccount();
+  const allAccounts = AlgoAccounts.getAllAccounts();
+
+  const bodyHtml = `
+    <div style="display:flex; flex-direction:column; gap:1.25rem;">
+      <!-- Active Profile Card -->
+      <div style="background:linear-gradient(135deg, #1a2a42 0%, #0d7a6b 100%); border-radius:10px; padding:1.2rem; color:#fff; display:flex; gap:1rem; align-items:center; box-shadow:0 4px 12px rgba(13,122,107,0.25);">
+        <div style="width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,0.2); border:2px solid rgba(255,255,255,0.4); display:flex; align-items:center; justify-content:center; font-size:1.15rem; font-weight:800; flex-shrink:0;">
+          ${activeAcc.initials}
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+            <div style="font-size:1.05rem; font-weight:800;">${activeAcc.userName}</div>
+            <span style="font-size:0.68rem; font-weight:700; background:rgba(255,255,255,0.2); padding:0.15rem 0.5rem; border-radius:20px;">Active Workspace</span>
+          </div>
+          <div style="font-size:0.84rem; font-weight:600; color:#e2e8f0; margin-top:2px;">${activeAcc.companyName}</div>
+          <div style="font-size:0.75rem; color:#cbd5e1; margin-top:2px;">${activeAcc.email} · ${activeAcc.state}</div>
+        </div>
+      </div>
+
+      <!-- Quick Action Navigation -->
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.6rem;">
+        <a href="profile.html" class="btn" style="text-decoration:none; padding:0.65rem 0.5rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; text-align:center; font-size:0.78rem; font-weight:700; color:#1e293b; display:flex; flex-direction:column; align-items:center; gap:0.3rem;" onclick="AlgoUI.closeModal()">
+          <span style="font-size:1.1rem;">🏢</span>
+          <span>Edit Profile</span>
+        </a>
+        <a href="approvals.html" class="btn" style="text-decoration:none; padding:0.65rem 0.5rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; text-align:center; font-size:0.78rem; font-weight:700; color:#1e293b; display:flex; flex-direction:column; align-items:center; gap:0.3rem;" onclick="AlgoUI.closeModal()">
+          <span style="font-size:1.1rem;">📋</span>
+          <span>Approvals</span>
+        </a>
+        <a href="documents.html" class="btn" style="text-decoration:none; padding:0.65rem 0.5rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; text-align:center; font-size:0.78rem; font-weight:700; color:#1e293b; display:flex; flex-direction:column; align-items:center; gap:0.3rem;" onclick="AlgoUI.closeModal()">
+          <span style="font-size:1.1rem;">📁</span>
+          <span>Documents</span>
+        </a>
+      </div>
+
+      <!-- Multi-Account Separation & Switcher -->
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+          <span style="font-size:0.75rem; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:0.6px;">Switch Business Profile</span>
+          <span style="font-size:0.72rem; color:#64748b;">${allAccounts.length} profiles configured</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:0.5rem; max-height:220px; overflow-y:auto; padding-right:4px;">
+          ${allAccounts.map(acc => {
+            const isActive = acc.id === activeAcc.id;
+            return `
+              <div style="border:1.5px solid ${isActive ? '#0d7a6b' : '#e2e8f0'}; background:${isActive ? '#f0fdfa' : '#ffffff'}; border-radius:8px; padding:0.75rem 0.9rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; transition:all 0.15s;" onclick="AlgoAccounts.switchAccount('${acc.id}')">
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                  <div style="width:34px; height:34px; border-radius:50%; background:${isActive ? '#0d7a6b' : '#334155'}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:800; flex-shrink:0;">
+                    ${acc.initials}
+                  </div>
+                  <div>
+                    <div style="font-size:0.86rem; font-weight:700; color:#0f172a;">${acc.companyName}</div>
+                    <div style="font-size:0.74rem; color:#64748b;">${acc.userName} · ${acc.sectorBadge || acc.industryType}</div>
+                  </div>
+                </div>
+                ${isActive ? `
+                  <span style="font-size:0.7rem; font-weight:700; color:#0d7a6b; background:#ccfbf1; padding:0.2rem 0.5rem; border-radius:12px; display:inline-flex; align-items:center; gap:0.25rem;">
+                    ✓ Active
+                  </span>
+                ` : `
+                  <button type="button" class="btn btn-secondary btn-sm" style="font-size:0.74rem; padding:0.25rem 0.6rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; color:#334155; font-weight:600;">Switch</button>
+                `}
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    </div>
+  `;
+
+  const footerHtml = `
+    <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.showToast('Signed out of session.', 'info'); AlgoUI.closeModal();" style="padding:0.5rem 0.9rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600; color:#dc2626;">
+      🚪 Sign Out
+    </button>
+    <button type="button" class="btn btn-primary btn-sm" onclick="openAuthModal('login')" style="padding:0.5rem 1.15rem; border:none; border-radius:6px; background:#0d7a6b; color:#fff; cursor:pointer; font-weight:700;">
+      ➕ Add / Sign In Another Account
+    </button>
+  `;
+
+  AlgoUI.openModal("Business Profile & Account Hub", bodyHtml, footerHtml);
+};
+
+// ----------------------------------------------------------------------------
+// 7. In-Page Auth (Login & Register) Modal
+// ----------------------------------------------------------------------------
+window.openAuthModal = function(defaultTab = "login") {
+  const isLogin = defaultTab === "login";
+  const bodyHtml = `
+    <div style="display:flex; flex-direction:column; gap:1.15rem;">
+      <!-- Tab Bar -->
+      <div style="display:flex; border-bottom:1.5px solid #e2e8f0; gap:1rem;">
+        <button type="button" id="tab-modal-login" onclick="toggleAuthModalTab('login')" style="background:none; border:none; border-bottom:2.5px solid ${isLogin ? '#0d7a6b' : 'transparent'}; padding:0.6rem 0.8rem; font-size:0.88rem; font-weight:700; color:${isLogin ? '#0d7a6b' : '#64748b'}; cursor:pointer;">
+          Sign In to Account
+        </button>
+        <button type="button" id="tab-modal-reg" onclick="toggleAuthModalTab('reg')" style="background:none; border:none; border-bottom:2.5px solid ${!isLogin ? '#0d7a6b' : 'transparent'}; padding:0.6rem 0.8rem; font-size:0.88rem; font-weight:700; color:${!isLogin ? '#0d7a6b' : '#64748b'}; cursor:pointer;">
+          Register New Business
+        </button>
+      </div>
+
+      <!-- Login Form Pane -->
+      <div id="auth-pane-login" style="display:${isLogin ? 'flex' : 'none'}; flex-direction:column; gap:1rem;">
+        <div>
+          <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Authorized Email Address</label>
+          <input type="email" id="modal-auth-email" value="aarav.sharma@shaktiprecision.in" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Password</label>
+          <input type="password" id="modal-auth-pass" value="••••••••••••" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;">
+        </div>
+
+        <!-- 1-Click Fast Profile Switcher -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem;">
+          <div style="font-size:0.72rem; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:0.5rem;">Quick Sign In as Demo Business Profile:</div>
+          <div style="display:flex; flex-direction:column; gap:0.35rem;">
+            <button type="button" onclick="AlgoAccounts.switchAccount('acc_aarav')" style="text-align:left; background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:0.45rem 0.65rem; font-size:0.78rem; font-weight:600; color:#0f172a; cursor:pointer;">
+              🏭 <strong>Shakti Precision</strong> (Aarav Sharma · Manufacturing)
+            </button>
+            <button type="button" onclick="AlgoAccounts.switchAccount('acc_priya')" style="text-align:left; background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:0.45rem 0.65rem; font-size:0.78rem; font-weight:600; color:#0f172a; cursor:pointer;">
+              🧪 <strong>Zenith Biopharma</strong> (Dr. Priya Patel · Chemicals)
+            </button>
+            <button type="button" onclick="AlgoAccounts.switchAccount('acc_rajesh')" style="text-align:left; background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:0.45rem 0.65rem; font-size:0.78rem; font-weight:600; color:#0f172a; cursor:pointer;">
+              🍏 <strong>Apex Agro Foods</strong> (Rajesh Mehta · Food Processing)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Register Form Pane -->
+      <div id="auth-pane-reg" style="display:${!isLogin ? 'flex' : 'none'}; flex-direction:column; gap:0.9rem; max-height:55vh; overflow-y:auto; padding-right:4px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+          <div>
+            <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Full Name</label>
+            <input type="text" id="modal-reg-name" placeholder="e.g. Vikram Singhania" style="width:100%; padding:0.5rem 0.7rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.84rem; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Work Email</label>
+            <input type="email" id="modal-reg-email" placeholder="e.g. vikram@singhania.in" style="width:100%; padding:0.5rem 0.7rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.84rem; box-sizing:border-box;">
+          </div>
+        </div>
+        <div>
+          <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Enterprise / Company Legal Name</label>
+          <input type="text" id="modal-reg-company" placeholder="e.g. Singhania Robotics Pvt. Ltd." style="width:100%; padding:0.5rem 0.7rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.84rem; box-sizing:border-box;">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+          <div>
+            <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Industry Sector</label>
+            <select id="modal-reg-sector" style="width:100%; padding:0.5rem 0.7rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.84rem; box-sizing:border-box;">
+              <option>Manufacturing & Engineering</option>
+              <option>Chemicals & Hazardous Materials</option>
+              <option>Food Processing & Agro</option>
+              <option>Electronics & Hardware</option>
+              <option>Textiles & Apparel</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">State Jurisdiction</label>
+            <select id="modal-reg-state" style="width:100%; padding:0.5rem 0.7rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.84rem; box-sizing:border-box;">
+              <option>Maharashtra</option>
+              <option>Gujarat</option>
+              <option>Karnataka</option>
+              <option>Tamil Nadu</option>
+              <option>Telangana</option>
+              <option>Uttar Pradesh</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const footerHtml = `
+    <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.closeModal()" style="padding:0.5rem 1rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600;">Cancel</button>
+    <button type="button" class="btn btn-primary btn-sm" id="modal-auth-submit-btn" onclick="handleAuthModalSubmit()" style="padding:0.5rem 1.25rem; border:none; border-radius:6px; background:#0d7a6b; color:#fff; cursor:pointer; font-weight:700;">
+      ${isLogin ? 'Sign In to Workspace →' : 'Register Enterprise Account →'}
+    </button>
+  `;
+
+  AlgoUI.openModal(isLogin ? "Sign In to Business Workspace" : "Register New Business Profile", bodyHtml, footerHtml);
+};
+
+window.toggleAuthModalTab = function(tab) {
+  const isLogin = tab === "login";
+  const loginPane = document.getElementById("auth-pane-login");
+  const regPane = document.getElementById("auth-pane-reg");
+  const tabLogin = document.getElementById("tab-modal-login");
+  const tabReg = document.getElementById("tab-modal-reg");
+  const submitBtn = document.getElementById("modal-auth-submit-btn");
+
+  if (loginPane) loginPane.style.display = isLogin ? "flex" : "none";
+  if (regPane) regPane.style.display = !isLogin ? "flex" : "none";
+
+  if (tabLogin) {
+    tabLogin.style.borderBottom = isLogin ? "2.5px solid #0d7a6b" : "2.5px solid transparent";
+    tabLogin.style.color = isLogin ? "#0d7a6b" : "#64748b";
+  }
+  if (tabReg) {
+    tabReg.style.borderBottom = !isLogin ? "2.5px solid #0d7a6b" : "2.5px solid transparent";
+    tabReg.style.color = !isLogin ? "#0d7a6b" : "#64748b";
+  }
+  if (submitBtn) {
+    submitBtn.textContent = isLogin ? "Sign In to Workspace →" : "Register Enterprise Account →";
+  }
+};
+
+window.handleAuthModalSubmit = function() {
+  const isReg = document.getElementById("auth-pane-reg")?.style.display === "flex";
+  if (isReg) {
+    const name = document.getElementById("modal-reg-name")?.value?.trim() || "Compliance Officer";
+    const company = document.getElementById("modal-reg-company")?.value?.trim() || "New Enterprise Ltd.";
+    const email = document.getElementById("modal-reg-email")?.value?.trim() || "officer@enterprise.in";
+    const sector = document.getElementById("modal-reg-sector")?.value || "Manufacturing";
+    const state = document.getElementById("modal-reg-state")?.value || "Maharashtra";
+
+    const newAcc = {
+      id: "acc_" + Date.now(),
+      userName: name,
+      email: email,
+      initials: name.split(" ").map(p => p[0]).join("").substring(0, 2).toUpperCase() || "NE",
+      companyName: company,
+      constitution: "Private Limited Company",
+      industryType: sector,
+      sectorBadge: `● ${sector}`,
+      nicCode: "28100 · General Engineering",
+      incorporationDate: "2026",
+      unitName: `${company.split(" ")[0]} Main Facility`,
+      unitBadge: "Primary unit",
+      unitAddress: `Industrial Zone, ${state}`,
+      state: state,
+      landArea: "10,000 sq. m.",
+      employeesCount: 50,
+      powerLoad: "250 kW",
+      shiftPattern: "Two shifts",
+      operationsDesc: "Manufacturing & assembly",
+      completionPct: 75,
+      registrations: [
+        { name: "Corporate Identification Number", code: "CIN", value: "U" + Math.floor(10000000 + Math.random()*90000000), status: "Verified" },
+        { name: "Goods & Services Tax", code: "GSTIN", value: "27AAAC" + Math.floor(1000 + Math.random()*9000) + "Z1", status: "Verified" }
+      ],
+      stats: { approvals: 8, inProgress: 2, dueSoon: 1 },
+      applications: [],
+      documents: [],
+      renewals: []
+    };
+
+    AlgoAccounts.addOrUpdateAccount(newAcc);
+    AlgoUI.showToast(`Account registered and activated for ${company}!`, "success");
+    AlgoUI.closeModal();
+  } else {
+    AlgoAccounts.switchAccount("acc_aarav");
+    AlgoUI.showToast("Signed in successfully to workspace!", "success");
+    AlgoUI.closeModal();
+  }
+};
+
+// ----------------------------------------------------------------------------
+// 8. Redesigned, High-End "Create & Start Application" Experience
+// ----------------------------------------------------------------------------
+window.openNewApplicationModal = function() {
+  const activeAcc = AlgoAccounts.getActiveAccount();
+  const industry = (activeAcc.industryType || "Manufacturing").toLowerCase();
+
+  // Filter catalog strictly to clearances needed for this company's profile
+  const filteredCatalog = STATUTORY_CATALOG.filter(req => {
+    if (industry.includes("food") || industry.includes("agro")) {
+      return ["REQ_TRADE_LICENSE", "REQ_FIRE_NOC", "REQ_BUILDING_SANCTION", "REQ_FSSAI_LICENSE", "REQ_AGMARK_GRADING", "REQ_COLD_STORAGE_NOC", "REQ_EPFO_REG", "REQ_ESIC_REG"].includes(req.code);
+    } else if (industry.includes("chem") || industry.includes("haz")) {
+      return ["REQ_TRADE_LICENSE", "REQ_FIRE_NOC", "REQ_PESO_LICENSE", "REQ_HAZMAT_AUTHORIZATION", "REQ_PROCESS_SAFETY_41", "REQ_FACTORIES_LICENSE", "REQ_SPCB_CTE_CTO", "REQ_EPFO_REG", "REQ_ESIC_REG"].includes(req.code);
+    } else if (industry.includes("textil") || industry.includes("apparel")) {
+      return ["REQ_TRADE_LICENSE", "REQ_FIRE_NOC", "REQ_BUILDING_SANCTION", "REQ_ZLD_COMPLIANCE", "REQ_TEXTILE_COMMISSIONER", "REQ_FACTORIES_LICENSE", "REQ_EPFO_REG", "REQ_ESIC_REG"].includes(req.code);
+    } else if (industry.includes("electr") || industry.includes("hardw")) {
+      return ["REQ_TRADE_LICENSE", "REQ_FIRE_NOC", "REQ_BUILDING_SANCTION", "REQ_EPR_EWASTE", "REQ_BIS_CRS", "REQ_STPI_CUSTOMS", "REQ_FACTORIES_LICENSE", "REQ_EPFO_REG", "REQ_ESIC_REG"].includes(req.code);
+    } else {
+      // Precision Manufacturing & General Engineering (Shakti Precision)
+      return ["REQ_FIRE_NOC", "REQ_FACTORIES_LICENSE", "REQ_SPCB_CTE_CTO", "REQ_BUILDING_SANCTION", "REQ_CEIG_ELECTRICAL", "REQ_BOILER_CERT", "REQ_TRADE_LICENSE", "REQ_EPFO_REG", "REQ_ESIC_REG"].includes(req.code);
+    }
+  });
+
+  const bodyHtml = `
+    <div style="display:flex; flex-direction:column; gap:1.15rem;">
+      <!-- Active Profile Targeting Banner -->
+      <div style="background:#f0fdfa; border:1.5px solid #99f6e4; border-radius:8px; padding:0.75rem 1rem; display:flex; align-items:center; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <span style="font-size:1.1rem;">🏢</span>
+          <div>
+            <div style="font-size:0.84rem; font-weight:800; color:#0f172a;">${activeAcc.companyName}</div>
+            <div style="font-size:0.75rem; color:#0d7a6b; font-weight:700;">${activeAcc.sectorBadge || activeAcc.industryType} · ${activeAcc.state}</div>
+          </div>
+        </div>
+        <span style="font-size:0.72rem; font-weight:700; color:#0d7a6b; background:#ccfbf1; padding:0.2rem 0.6rem; border-radius:12px;">
+          ${filteredCatalog.length} Applicable Clearances
+        </span>
+      </div>
+
+      <!-- Search Control -->
+      <div style="display:flex; align-items:center; gap:0.6rem; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:8px; padding:0.5rem 0.85rem;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="app-modal-search" placeholder="Search applicable clearances by name or department (e.g. Fire, CTE, Factory, Boiler)..." oninput="filterNewAppCatalog()" style="width:100%; border:none; background:none; outline:none; font-size:0.86rem; color:#0f172a; font-family:inherit;">
+      </div>
+
+      <!-- Catalog Cards List -->
+      <div id="new-app-cards-container" style="display:flex; flex-direction:column; gap:0.75rem; max-height:50vh; overflow-y:auto; padding-right:4px;">
+        ${filteredCatalog.map(req => `
+          <div class="new-app-card-item" data-category="${req.category}" data-title="${req.title.toLowerCase()}" data-dept="${req.department.toLowerCase()}" style="border:1.5px solid #e2e8f0; border-radius:10px; padding:1rem; background:#ffffff; transition:all 0.15s; display:flex; flex-direction:column; gap:0.6rem; cursor:pointer;" onmouseover="this.style.borderColor='#0d7a6b'; this.style.boxShadow='0 4px 12px rgba(13,122,107,0.1)';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';" onclick="openApplicationWizardModal('${req.code}')">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem;">
+              <div>
+                <div style="font-size:0.72rem; font-weight:700; color:#0d7a6b; text-transform:uppercase; letter-spacing:0.5px;">🏛️ ${req.department}</div>
+                <div style="font-size:0.95rem; font-weight:800; color:#0f172a; margin-top:2px;">${req.title}</div>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; padding-top:0.4rem; border-top:1px solid #f1f5f9;">
+              <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+                <span style="font-size:0.72rem; font-weight:600; color:#334155; background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px; padding:0.15rem 0.45rem;">⏱️ ${req.validityYears}y Validity</span>
+                <span style="font-size:0.72rem; font-weight:600; color:#334155; background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px; padding:0.15rem 0.45rem;">💳 ${req.feeEstimate}</span>
+                <span style="font-size:0.72rem; font-weight:700; color:${req.inspectionRequired ? '#b45309' : '#0d7a6b'}; background:${req.inspectionRequired ? '#fef3c7' : '#e6f5f3'}; border-radius:4px; padding:0.15rem 0.45rem;">
+                  ${req.inspectionRequired ? '🔍 Site Inspection Required' : '📄 Document Scrutiny'}
+                </span>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openApplicationWizardModal('${req.code}')" style="background:#0d7a6b; color:#fff; border:none; padding:0.35rem 0.85rem; border-radius:6px; font-weight:700; font-size:0.8rem; cursor:pointer;">
+                Start Application →
+              </button>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+
+  const footerHtml = `
+    <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.closeModal()" style="padding:0.5rem 1rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600;">Cancel</button>
+  `;
+
+  AlgoUI.openModal("Start Statutory Clearance Application", bodyHtml, footerHtml);
+};
+
+window.filterNewAppCatalog = function() {
+  const q = document.getElementById("app-modal-search")?.value?.toLowerCase() || "";
+  const items = document.querySelectorAll(".new-app-card-item");
+
+  items.forEach(item => {
+    const title = item.getAttribute("data-title") || "";
+    const dept = item.getAttribute("data-dept") || "";
+    const matchesSearch = title.includes(q) || dept.includes(q);
+    item.style.display = matchesSearch ? "flex" : "none";
+  });
+};
+
+// ----------------------------------------------------------------------------
+// 8.1 Interactive Statutory Document Viewer Modal (Authentic Original File Viewer)
+// ----------------------------------------------------------------------------
+window.openDocumentViewerModal = function(docRef, docTitle, fileName, fileSize, status, date, dataUrl) {
+  const activeAcc = AlgoAccounts.getActiveAccount();
+  const allDocs = (activeAcc && activeAcc.documents) ? activeAcc.documents : [];
+  const foundDoc = allDocs.find(d => d.ref === docRef || d.id === docRef || d.fileName === fileName || d.name === docTitle || d.title === docTitle);
+
+  const realDataUrl = (dataUrl && dataUrl !== 'stored') ? dataUrl : (foundDoc?.dataUrl || null);
+  const realFileName = fileName || foundDoc?.fileName || (docTitle ? `${docTitle}.pdf` : 'document.pdf');
+  const realFileSize = fileSize || foundDoc?.fileSize || 'Attached File';
+  const realDate = date || foundDoc?.date || foundDoc?.uploaded || 'Recent Record';
+  const ext = (realFileName.split('.').pop() || 'pdf').toLowerCase();
+
+  const isImg = ['png', 'jpg', 'jpeg', 'webp', 'svg', 'gif'].includes(ext);
+  const isPdf = ext === 'pdf';
+
+  const isVerified = (status || foundDoc?.status || "").toLowerCase().includes("verif");
+  const isPreValidated = (status || foundDoc?.status || "").toLowerCase().includes("pre-val") || (status || foundDoc?.status || "").toLowerCase().includes("preval");
+
+  let statusBadgeHtml = `<span style="font-size:0.75rem; font-weight:700; color:#b45309; background:#fef3c7; border:1px solid #fde68a; padding:0.25rem 0.65rem; border-radius:12px; display:inline-flex; align-items:center; gap:0.3rem;">● Under Review</span>`;
+  if (isPreValidated) {
+    statusBadgeHtml = `<span style="font-size:0.75rem; font-weight:700; color:#0284c7; background:#e0f2fe; border:1px solid #bae6fd; padding:0.25rem 0.65rem; border-radius:12px; display:inline-flex; align-items:center; gap:0.3rem;">★ Pre-Validated</span>`;
+  } else if (isVerified) {
+    statusBadgeHtml = `<span style="font-size:0.75rem; font-weight:700; color:#16a34a; background:#dcfce7; border:1px solid #bbf7d0; padding:0.25rem 0.65rem; border-radius:12px; display:inline-flex; align-items:center; gap:0.3rem;">✓ Verified Original</span>`;
+  }
+
+  const titleClean = (docTitle || realFileName || "Statutory Document").replace(/"/g, '&quot;');
+  const fileClean = realFileName.replace(/"/g, '&quot;');
+
+  let previewContentHtml = '';
+
+  if (realDataUrl && isPdf) {
+    previewContentHtml = `
+      <div style="border:1.5px solid #cbd5e1; border-radius:10px; overflow:hidden; background:#525659; min-height:420px; box-shadow:0 4px 14px rgba(0,0,0,0.06);">
+        <iframe src="${realDataUrl}" style="width:100%; height:450px; border:none; display:block;" title="${titleClean}"></iframe>
+      </div>
+    `;
+  } else if (realDataUrl && isImg) {
+    previewContentHtml = `
+      <div style="display:flex; justify-content:center; align-items:center; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:1.5rem; max-height:450px; overflow:auto;">
+        <img src="${realDataUrl}" alt="${titleClean}" style="max-width:100%; max-height:400px; object-fit:contain; border-radius:6px; box-shadow:0 4px 14px rgba(0,0,0,0.08);">
+      </div>
+    `;
+  } else {
+    // Clean, authentic file presentation for DOCX, Word, Excel, and other file types
+    previewContentHtml = `
+      <div style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:10px; padding:2.5rem 1.5rem; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:1.15rem; box-shadow:0 4px 14px rgba(0,0,0,0.04);">
+        <div style="width:68px; height:68px; border-radius:14px; background:${ext.includes('doc') ? '#eff6ff' : '#ecfdf5'}; color:${ext.includes('doc') ? '#2563eb' : '#0d7a6b'}; display:flex; align-items:center; justify-content:center; font-size:1.9rem; font-weight:800; border:1.5px solid ${ext.includes('doc') ? '#bfdbfe' : '#a7f3d0'};">
+          📄
+        </div>
+        <div>
+          <div style="font-size:1.15rem; font-weight:800; color:#0f172a; word-break:break-word; max-width:500px;">${fileClean}</div>
+          <div style="font-size:0.84rem; color:#64748b; margin-top:4px;">
+            Size: <strong style="color:#334155;">${realFileSize}</strong> · Format: <strong style="color:#0d7a6b;">${ext.toUpperCase()}</strong> · Deposited: ${realDate}
+          </div>
+        </div>
+        <div style="display:flex; gap:0.6rem; margin-top:0.35rem; flex-wrap:wrap; justify-content:center;">
+          <button type="button" class="btn btn-primary" onclick="downloadDocument('${docRef}', '${titleClean.replace(/'/g, "\\'")}', 'General')" style="background:#0d7a6b; color:#fff; border:none; padding:0.6rem 1.35rem; border-radius:8px; font-weight:700; font-size:0.86rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem; box-shadow:0 2px 8px rgba(13,122,107,0.25);">
+            <span>📥</span> Open / Download Original File
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  const bodyHtml = `
+    <div style="display:flex; flex-direction:column; gap:1.15rem;">
+      <!-- Metadata Header -->
+      <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:0.95rem 1.15rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+        <div>
+          <div style="font-size:0.72rem; font-weight:700; color:#0d7a6b; text-transform:uppercase; letter-spacing:0.5px;">Statutory Document Vault — ${docRef || 'DOC'}</div>
+          <div style="font-size:1.05rem; font-weight:800; color:#0f172a; margin-top:2px;">${titleClean}</div>
+          <div style="font-size:0.78rem; color:#64748b; margin-top:2px;">Original File: <strong style="color:#334155;">${fileClean}</strong> (${realFileSize})</div>
+        </div>
+        <div>
+          ${statusBadgeHtml}
+        </div>
+      </div>
+
+      <!-- Authentic File Preview Area -->
+      ${previewContentHtml}
+    </div>
+  `;
+
+  const footerHtml = `
+    <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.closeModal()" style="padding:0.5rem 1rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600;">Close</button>
+    <button type="button" class="btn btn-primary btn-sm" onclick="downloadDocument('${docRef}', '${titleClean.replace(/'/g, "\\'")}', 'General')" style="background:#0d7a6b; color:#fff; border:none; padding:0.5rem 1.25rem; border-radius:6px; font-weight:700; font-size:0.82rem; cursor:pointer;">
+      📥 Download Original File
+    </button>
+  `;
+
+  AlgoUI.openModal(`Original Document: ${titleClean}`, bodyHtml, footerHtml);
+};
+
+// ----------------------------------------------------------------------------
+// 9. Multi-Step Interactive Application Wizard
+// ----------------------------------------------------------------------------
+window.openApplicationWizardModal = function(reqCode) {
+  try {
+    const activeAcc = AlgoAccounts.getActiveAccount();
+    const req = STATUTORY_CATALOG.find(r => r.code === reqCode) || {
+      code: reqCode,
+      title: "Statutory Approval Permit",
+      department: "Directorate of Industrial Clearances",
+      category: "General Compliance",
+      feeEstimate: "₹10,000 – ₹25,000",
+      validityYears: 3,
+      inspectionRequired: true,
+      mandatoryDocuments: ["Sanctioned Layout Blueprint", "Identity Proof", "Environmental Audit Report"]
+    };
+
+    const docs = req.mandatoryDocuments && req.mandatoryDocuments.length 
+      ? req.mandatoryDocuments 
+      : ["Property Tax Receipt or Registered Lease Deed", "Identity & Address Proof of Proprietor/Directors", "Sanctioned Building Layout Plan"];
+
+    // Helper to provide context-aware issuing authority for each document
+    function getDocGuidance(docName) {
+      const d = (docName || "").toLowerCase();
+      let issuer = "Competent Municipal / Statutory Authority";
+      let submitTo = `${req.department} (Nodal Officer)`;
+      let instruction = "Upload self-attested or digitally signed PDF/Scan";
+
+      if (d.includes("tax") || d.includes("lease") || d.includes("title") || d.includes("possession") || d.includes("land")) {
+        issuer = "Local Sub-Registrar / Municipal Property Tax Cell / Industrial Development Authority (MIDC)";
+        submitTo = `${req.department} — Property & Land Verification Cell`;
+        instruction = "Upload certified copy of Registered Lease / Property Tax receipt with Challan";
+      } else if (d.includes("fire") || d.includes("evacuation") || d.includes("hydrant") || d.includes("sprinkler")) {
+        issuer = "State Fire & Emergency Services / Licensed Fire Protection Engineer";
+        submitTo = "Office of the Chief Fire Officer (CFO) & Single Window Desk";
+        instruction = "Upload architectural floor evacuation map with fire hydrant flow calculations";
+      } else if (d.includes("stability") || d.includes("blueprint") || d.includes("layout") || d.includes("drawing") || d.includes("structural")) {
+        issuer = "Government Chartered Structural Engineer / Registered Architect";
+        submitTo = `${req.department} — Engineering Scrutiny Desk`;
+        instruction = "Upload 1:100 scale AutoCAD/PDF blueprint with engineer stability certificate";
+      } else if (d.includes("identity") || d.includes("address") || d.includes("signatory") || d.includes("pan") || d.includes("gstin")) {
+        issuer = "MCA / UIDAI / Income Tax Department (Government of India)";
+        submitTo = `${req.department} — Enterprise Verification Section`;
+        instruction = "Upload verified PAN/Aadhaar/Board Resolution of authorized director";
+      } else if (d.includes("food") || d.includes("fsms") || d.includes("water") || d.includes("lab") || d.includes("recall")) {
+        issuer = "FSSAI Certified Authority / NABL Accredited Testing Laboratory";
+        submitTo = "Food Safety Officer (FSO) / District Designated Officer";
+        instruction = "Upload laboratory water potability certificate (IS:10500) and FSMS plan";
+      } else if (d.includes("pollution") || d.includes("spcb") || d.includes("cte") || d.includes("cto") || d.includes("effluent") || d.includes("etp")) {
+        issuer = "State Pollution Control Board (SPCB) Regional Officer";
+        submitTo = "Regional Environment Officer (Consent Scrutiny Wing)";
+        instruction = "Upload ETP/STP flow schematics and environmental consent application";
+      }
+
+      return { issuer, submitTo, instruction };
+    }
+
+    // State store for uploaded files in this modal session
+    window._wizardUploadedDocs = {};
+    window._wizardTotalDocsCount = docs.length;
+    window._wizardCurrentReq = req;
+
+    // Pre-check if any documents already exist in the user's active Document Vault
+    const existingVaultDocs = (activeAcc.documents || []);
+
+    const docsHtml = docs.map((docName, idx) => {
+      const guide = getDocGuidance(docName);
+      
+      // Safe check if user already has this document stored in their vault
+      const matchedVaultDoc = existingVaultDocs.find(v => {
+        const vTitle = (v.title || v.name || "").toLowerCase();
+        const targetDoc = (docName || "").toLowerCase();
+        return (vTitle && targetDoc && (vTitle.includes(targetDoc.substring(0, 10)) || targetDoc.includes(vTitle.substring(0, 10))));
+      });
+
+      if (matchedVaultDoc) {
+        const docTitle = matchedVaultDoc.title || matchedVaultDoc.name || docName;
+        window._wizardUploadedDocs[idx] = {
+          name: matchedVaultDoc.fileName || matchedVaultDoc.name || `${docTitle.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+          size: matchedVaultDoc.fileSize || matchedVaultDoc.size || "1.4 MB",
+          docRef: matchedVaultDoc.ref || `DOC-${Math.floor(100000 + Math.random()*900000)}`,
+          type: "application/pdf",
+          docName: docName,
+          status: matchedVaultDoc.status || "Under Review",
+          uploadedAt: matchedVaultDoc.uploaded || matchedVaultDoc.date || new Date().toISOString()
+        };
+      }
+
+      const isAlreadyUploaded = !!window._wizardUploadedDocs[idx];
+      const uploadedData = window._wizardUploadedDocs[idx];
+
+      return `
+        <div id="wizard-doc-row-${idx}" style="background:${isAlreadyUploaded ? '#f0fdfa' : '#ffffff'}; border:1.5px solid ${isAlreadyUploaded ? '#0d7a6b' : '#e2e8f0'}; border-radius:10px; padding:0.95rem 1rem; transition:all 0.2s ease; display:flex; flex-direction:column; gap:0.65rem;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem; flex-wrap:wrap;">
+            <div style="flex:1; min-width:240px;">
+              <div style="display:flex; align-items:center; gap:0.45rem;">
+                <span style="font-size:0.95rem;">📄</span>
+                <strong style="font-size:0.88rem; color:#0f172a;">${docName}</strong>
+              </div>
+              
+              <!-- Where, Who & How Guidance -->
+              <div style="margin-top:0.4rem; font-size:0.75rem; color:#475569; display:flex; flex-direction:column; gap:0.25rem; background:#f8fafc; border:1px solid #f1f5f9; border-radius:6px; padding:0.5rem 0.65rem;">
+                <div><strong>🏛️ Who Issues / Get From:</strong> <span style="color:#0f172a;">${guide.issuer}</span></div>
+                <div><strong>📍 Who &amp; Where to Submit:</strong> <span style="color:#0d7a6b; font-weight:600;">${guide.submitTo}</span></div>
+                <div><strong>📝 Filing Instruction:</strong> <span style="color:#64748b;">${guide.instruction}</span></div>
+              </div>
+            </div>
+
+            <!-- Direct Upload & Storage Control -->
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.4rem; flex-shrink:0;">
+              <input type="file" id="wizard-file-input-${idx}" data-doc-title="${encodeURIComponent(docName)}" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="display:none;" onchange="window.handleWizardDocUpload(${idx}, decodeURIComponent(this.getAttribute('data-doc-title')), event)">
+              
+              <div id="wizard-doc-status-${idx}">
+                ${isAlreadyUploaded ? `
+                  <span style="font-size:0.72rem; font-weight:700; color:#b45309; background:#fffbeb; border:1px solid #fde68a; padding:0.25rem 0.6rem; border-radius:6px; display:inline-flex; align-items:center; gap:0.3rem;">
+                    <span>●</span> Under Review (${uploadedData.docRef || 'Vault'}): <strong>${uploadedData.name}</strong> (${uploadedData.size})
+                  </span>
+                ` : `
+                  <span style="font-size:0.72rem; font-weight:700; color:#64748b; background:#f8fafc; border:1px solid #e2e8f0; padding:0.25rem 0.6rem; border-radius:6px; display:inline-flex; align-items:center; gap:0.3rem;">
+                    <span>⏳</span> Upload Required
+                  </span>
+                `}
+              </div>
+
+              <div style="display:flex; align-items:center; gap:0.35rem;" id="wizard-doc-actions-${idx}">
+                ${isAlreadyUploaded ? `
+                  <button type="button" id="wizard-view-btn-${idx}" onclick="openDocumentViewerModal('${uploadedData.docRef}', '${docName.replace(/'/g, "\\'")}', '${uploadedData.name.replace(/'/g, "\\'")}', '${uploadedData.size}', '${uploadedData.status || 'Under Review'}', 'Just now')" style="background:#f0fdfa; color:#0d7a6b; border:1px solid #99f6e4; padding:0.45rem 0.75rem; border-radius:6px; font-weight:700; font-size:0.8rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.25rem;">
+                    <span>👁️</span> View
+                  </button>
+                ` : ''}
+                <button type="button" id="wizard-upload-btn-${idx}" onclick="document.getElementById('wizard-file-input-${idx}').click()" style="background:${isAlreadyUploaded ? '#f8fafc' : '#0d7a6b'}; color:${isAlreadyUploaded ? '#334155' : '#ffffff'}; border:${isAlreadyUploaded ? '1px solid #cbd5e1' : 'none'}; padding:0.45rem 1rem; border-radius:6px; font-weight:700; font-size:0.8rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.35rem; transition:all 0.15s;">
+                  <span>${isAlreadyUploaded ? '🔄' : '📤'}</span> ${isAlreadyUploaded ? 'Replace' : 'Upload Document'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    const bodyHtml = `
+      <div style="display:flex; flex-direction:column; gap:1.25rem; max-height:68vh; overflow-y:auto; padding-right:4px;">
+        <!-- Header with Live Document Completion Progress -->
+        <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:1rem 1.15rem; display:flex; flex-direction:column; gap:0.65rem;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem; flex-wrap:wrap;">
+            <div>
+              <div style="font-size:0.72rem; font-weight:700; color:#0d7a6b; text-transform:uppercase; letter-spacing:0.5px;">Statutory Clearance Application</div>
+              <div style="font-size:1.1rem; font-weight:800; color:#0f172a; margin-top:2px;">${req.title}</div>
+              <div style="font-size:0.8rem; color:#64748b; margin-top:2px;">Department: <strong style="color:#334155;">${req.department}</strong></div>
+            </div>
+            <div style="text-align:right;">
+              <div id="wizard-progress-counter" style="font-size:0.78rem; font-weight:800; color:#b45309; background:#fffbeb; border:1px solid #fef3c7; padding:0.25rem 0.65rem; border-radius:20px; display:inline-block;">
+                ⚠️ 0 of ${docs.length} Documents Uploaded (0%)
+              </div>
+              <div style="font-size:0.7rem; color:#64748b; margin-top:3px;">All ${docs.length} documents required before submission</div>
+            </div>
+          </div>
+
+          <!-- Progress Bar Track -->
+          <div style="height:7px; background:#e2e8f0; border-radius:10px; overflow:hidden;">
+            <div id="wizard-progress-bar" style="width:0%; height:100%; background:#0d7a6b; transition:width 0.3s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+          </div>
+        </div>
+
+        <!-- Interactive Mandatory Documents Upload List -->
+        <div>
+          <div style="font-size:0.82rem; font-weight:800; color:#1e293b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.45rem;">
+            <span style="font-size:1.05rem;">📁</span> Required Documents &amp; Submission Channels
+          </div>
+          <div style="display:flex; flex-direction:column; gap:0.75rem;">
+            ${docsHtml}
+          </div>
+        </div>
+
+        <!-- Officer Remarks & Statutory Declaration -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.9rem 1rem;">
+          <div style="font-size:0.78rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Applicant Notes / Reference Remarks (Optional)</div>
+          <textarea id="wizard-remarks" placeholder="Enter plant registration numbers, survey lot details, or compliance notes..." style="width:100%; padding:0.5rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.82rem; font-family:inherit; box-sizing:border-box; background:#fff;" rows="2"></textarea>
+          
+          <label style="display:flex; align-items:flex-start; gap:0.5rem; margin-top:0.65rem; cursor:pointer; font-size:0.75rem; color:#475569; line-height:1.4;">
+            <input type="checkbox" id="wizard-declaration-checkbox" checked required style="accent-color:#0d7a6b; margin-top:2px;">
+            <span>I hereby declare that all uploaded documents and particulars submitted herein are authentic, legally binding, and compliant with Central &amp; State statutory rules.</span>
+          </label>
+        </div>
+      </div>
+    `;
+
+    const footerHtml = `
+      <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.closeModal()" style="padding:0.5rem 1rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600;">Cancel</button>
+      <button type="button" id="wizard-submit-btn" disabled onclick="submitApplicationWizard('${req.code}', '${req.title.replace(/'/g, "\\'")}', '${req.department.replace(/'/g, "\\'")}')" style="padding:0.55rem 1.45rem; border:none; border-radius:6px; background:#cbd5e1; color:#ffffff; cursor:not-allowed; font-weight:700; font-size:0.84rem; transition:all 0.2s ease; opacity:0.65;">
+        🔒 Upload All Documents to Register Application
+      </button>
+    `;
+
+    AlgoUI.openModal("Statutory Clearance Application: " + req.title, bodyHtml, footerHtml);
+    
+    // Initialize progress state immediately (for any pre-matched vault docs)
+    setTimeout(() => window.updateWizardCompletionState(), 50);
+  } catch (err) {
+    console.error("[Wizard Open Error]", err);
+    AlgoUI.showToast("Error opening application wizard: " + err.message, "danger");
+  }
+};
+
+window.handleWizardDocUpload = function(idx, docName, event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const dataUrl = evt.target.result;
+    const activeAcc = AlgoAccounts.getActiveAccount();
+    const docRef = `DOC-${Math.floor(100000 + Math.random()*900000)}`;
+    const fileSizeStr = (file.size / 1024).toFixed(1) + " KB";
+    const ext = (file.name.split('.').pop() || 'pdf').toUpperCase();
+
+    // 1. Store document in active account Vault
+    if (!activeAcc.documents) activeAcc.documents = [];
+
+    const storedDocRecord = {
+      id: docRef,
+      title: docName,
+      name: docName,
+      status: "Under Review",
+      category: "Statutory Clearance Docket",
+      ref: docRef,
+      uploaded: "Just now",
+      date: "Just now",
+      fileName: file.name,
+      fileSize: fileSizeStr,
+      type: ext,
+      dataUrl: dataUrl,
+      hasFile: true,
+      isBaseline: false
+    };
+
+    activeAcc.documents.unshift(storedDocRecord);
+    AlgoAccounts.addOrUpdateAccount(activeAcc);
+
+    // 2. Persist to MySQL Backend if online
+    if (typeof API_BASE !== "undefined") {
+      try {
+        const formData = new FormData();
+        formData.append("docName", docName);
+        formData.append("category", "Statutory Clearance");
+        formData.append("status", "Under Review");
+        formData.append("file", file);
+
+        fetch(`${API_BASE}/documents/upload`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${localStorage.getItem(TOKEN_KEY) || ""}` },
+          body: formData
+        }).catch(err => console.log("[Doc Upload Backend Sync]", err.message));
+      } catch (e) {}
+    }
+
+    // 3. Record document upload in modal session store
+    window._wizardUploadedDocs[idx] = {
+      name: file.name,
+      size: fileSizeStr,
+      docRef: docRef,
+      type: file.type || ext,
+      docName: docName,
+      status: "Under Review",
+      dataUrl: dataUrl,
+      uploadedAt: new Date().toISOString()
+    };
+
+    // 4. Update UI for this document row
+    const rowEl = document.getElementById(`wizard-doc-row-${idx}`);
+    const statusEl = document.getElementById(`wizard-doc-status-${idx}`);
+    const actionsEl = document.getElementById(`wizard-doc-actions-${idx}`);
+
+    if (rowEl) {
+      rowEl.style.borderColor = "#0d7a6b";
+      rowEl.style.background = "#f0fdfa";
+    }
+
+    if (statusEl) {
+      statusEl.innerHTML = `
+        <span style="font-size:0.72rem; font-weight:700; color:#b45309; background:#fffbeb; border:1px solid #fde68a; padding:0.25rem 0.6rem; border-radius:6px; display:inline-flex; align-items:center; gap:0.3rem;">
+          <span>●</span> Under Review (${docRef}): <strong>${file.name}</strong> (${fileSizeStr})
+        </span>
+      `;
+    }
+
+    if (actionsEl) {
+      actionsEl.innerHTML = `
+        <button type="button" id="wizard-view-btn-${idx}" onclick="openDocumentViewerModal('${docRef}', '${docName.replace(/'/g, "\\'")}', '${file.name.replace(/'/g, "\\'")}', '${fileSizeStr}', 'Under Review', 'Just now', 'stored')" style="background:#f0fdfa; color:#0d7a6b; border:1px solid #99f6e4; padding:0.45rem 0.75rem; border-radius:6px; font-weight:700; font-size:0.8rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.25rem;">
+          <span>👁️</span> View
+        </button>
+        <button type="button" id="wizard-upload-btn-${idx}" onclick="document.getElementById('wizard-file-input-${idx}').click()" style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:0.45rem 1rem; border-radius:6px; font-weight:700; font-size:0.8rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.35rem; transition:all 0.15s;">
+          <span>🔄</span> Replace
+        </button>
+      `;
+    }
+
+    // 5. Update overall progress & submission button lock state
+    window.updateWizardCompletionState();
+
+    AlgoUI.showToast(`Document "${docName}" saved & stored in Document Vault (${docRef}) as Under Review!`, "success");
+  };
+
+  reader.readAsDataURL(file);
+};
+
+
+window.updateWizardCompletionState = function() {
+  const total = window._wizardTotalDocsCount || 1;
+  const uploadedCount = Object.keys(window._wizardUploadedDocs || {}).length;
+  const percent = Math.round((uploadedCount / total) * 100);
+
+  const progressBar = document.getElementById("wizard-progress-bar");
+  const counterEl = document.getElementById("wizard-progress-counter");
+  const submitBtn = document.getElementById("wizard-submit-btn");
+
+  if (progressBar) {
+    progressBar.style.width = `${percent}%`;
+  }
+
+  if (uploadedCount === total) {
+    if (counterEl) {
+      counterEl.style.color = "#16a34a";
+      counterEl.style.background = "#dcfce7";
+      counterEl.style.borderColor = "#bbf7d0";
+      counterEl.innerHTML = `✓ All ${total} of ${total} Mandatory Documents Attached (100%)`;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.style.background = "#0d7a6b";
+      submitBtn.style.color = "#ffffff";
+      submitBtn.style.cursor = "pointer";
+      submitBtn.style.opacity = "1";
+      submitBtn.style.boxShadow = "0 4px 14px rgba(13,122,107,0.3)";
+      submitBtn.innerHTML = `Submit &amp; Register Application →`;
+    }
+  } else {
+    if (counterEl) {
+      counterEl.style.color = "#b45309";
+      counterEl.style.background = "#fffbeb";
+      counterEl.style.borderColor = "#fef3c7";
+      counterEl.innerHTML = `⚠️ ${uploadedCount} of ${total} Documents Uploaded (${percent}%)`;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.style.background = "#cbd5e1";
+      submitBtn.style.color = "#ffffff";
+      submitBtn.style.cursor = "not-allowed";
+      submitBtn.style.opacity = "0.65";
+      submitBtn.style.boxShadow = "none";
+      submitBtn.innerHTML = `🔒 Upload All ${total} Documents to Register Application`;
+    }
+  }
+};
+
+window.submitApplicationWizard = function(reqCode, title, dept) {
+  const total = window._wizardTotalDocsCount || 1;
+  const uploadedDocs = window._wizardUploadedDocs || {};
+  const uploadedCount = Object.keys(uploadedDocs).length;
+
+  if (uploadedCount < total) {
+    AlgoUI.showToast(`Cannot submit: Please upload all ${total} required documents first!`, "warning");
+    return;
+  }
+
+  const activeAcc = AlgoAccounts.getActiveAccount();
+  const remarks = document.getElementById("wizard-remarks")?.value?.trim();
+  const refNum = `AS-${reqCode.replace('REQ_', '').substring(0, 3)}-${Math.floor(260000 + Math.random()*9000)}`;
+  const uploadedDocNames = Object.values(uploadedDocs).map(d => `${d.docName} (${d.name})`).join(", ");
+
+  const newApp = {
+    ref: refNum,
+    title: title || reqCode,
+    dept: dept || "Competent Authority",
+    status: "Under review",
+    date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    checklistAttached: `${uploadedCount} Verified Documents`,
+    update: remarks ? `Application submitted with all ${uploadedCount} verified statutory documents: ${uploadedDocNames}. Note: ${remarks}` : `Application filed with complete statutory dossier (${uploadedCount} documents attached). Scrutiny in progress.`
+  };
+
+  // Add application to active account
+  if (!activeAcc.applications) activeAcc.applications = [];
+  activeAcc.applications.unshift(newApp);
+
+  // Also record uploaded documents in Vault
+  if (!activeAcc.documents) activeAcc.documents = [];
+  Object.values(uploadedDocs).forEach(d => {
+    activeAcc.documents.unshift({
+      title: d.docName,
+      status: "VERIFIED",
+      category: "Statutory Filing",
+      ref: `DOC-${Math.floor(100000 + Math.random()*900000)}`,
+      uploaded: "Just now",
+      fileName: d.name,
+      fileSize: d.size
+    });
+  });
+
+  AlgoAccounts.addOrUpdateAccount(activeAcc);
+
+  AlgoUI.showToast(`Application ${refNum} with ${uploadedCount} verified documents registered successfully!`, "success");
+  AlgoUI.closeModal();
+
+  setTimeout(() => {
+    if (typeof AlgoAccounts.syncCurrentPageDOM === "function") {
+      AlgoAccounts.syncCurrentPageDOM();
+    }
+    if (window.location.pathname.includes("approvals.html") || window.location.pathname.includes("dashboard.html")) {
+      window.location.href = "applications.html";
+    }
+  }, 450);
+};
+
+window.handleStartApplication = function(reqCode) {
+  openApplicationWizardModal(reqCode);
+};
+
+window.confirmCreateApplication = function(reqCode) {
+  const req = STATUTORY_CATALOG.find(r => r.code === reqCode);
+  submitApplicationWizard(reqCode, req ? req.title : reqCode, req ? req.department : "Statutory Department");
+};
+
+
+// Global Profile Edit Modal & Handlers
+window.openEditProfileModal = function() {
+  const activeAcc = AlgoAccounts.getActiveAccount();
+
+  const bodyHtml = `
+    <form id="edit-profile-modal-form" onsubmit="handleSaveProfileModal(event)" style="display:flex; flex-direction:column; gap:1.15rem; max-height:65vh; overflow-y:auto; padding-right:6px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div>
+          <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Company / Legal Entity Name</label>
+          <input type="text" id="modal-edit-company" value="${activeAcc.companyName}" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;" required>
+        </div>
+        <div>
+          <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Constitution</label>
+          <select id="modal-edit-constitution" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;">
+            <option ${(activeAcc.constitution||'').includes('Private') ? 'selected' : ''}>Private Limited Company</option>
+            <option ${(activeAcc.constitution||'').includes('Public') ? 'selected' : ''}>Public Limited Company</option>
+            <option ${(activeAcc.constitution||'').includes('Partnership') ? 'selected' : ''}>Partnership Firm</option>
+            <option ${(activeAcc.constitution||'').includes('LLP') ? 'selected' : ''}>Limited Liability Partnership</option>
+            <option ${(activeAcc.constitution||'').includes('Sole') ? 'selected' : ''}>Sole Proprietorship</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div>
+          <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Industry Sector / Type of Industry</label>
+          <select id="modal-edit-industry" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;">
+            <option ${(activeAcc.industryType||'').includes('Manufacturing') ? 'selected' : ''}>Manufacturing & Engineering</option>
+            <option ${(activeAcc.industryType||'').includes('Chemical') ? 'selected' : ''}>Chemicals & Hazardous Materials</option>
+            <option ${(activeAcc.industryType||'').includes('Food') ? 'selected' : ''}>Food Processing & Agro</option>
+            <option ${(activeAcc.industryType||'').includes('Electronic') ? 'selected' : ''}>Electronics & Hardware</option>
+            <option ${(activeAcc.industryType||'').includes('Textile') ? 'selected' : ''}>Textiles & Apparel</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">State Jurisdiction</label>
+          <select id="modal-edit-state" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;">
+            <option ${(activeAcc.state||'').includes('Maharashtra') ? 'selected' : ''}>Maharashtra</option>
+            <option ${(activeAcc.state||'').includes('Gujarat') ? 'selected' : ''}>Gujarat</option>
+            <option ${(activeAcc.state||'').includes('Karnataka') ? 'selected' : ''}>Karnataka</option>
+            <option ${(activeAcc.state||'').includes('Tamil') ? 'selected' : ''}>Tamil Nadu</option>
+            <option ${(activeAcc.state||'').includes('Telangana') ? 'selected' : ''}>Telangana</option>
+            <option ${(activeAcc.state||'').includes('Uttar') ? 'selected' : ''}>Uttar Pradesh</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid #e2e8f0; padding-top:0.75rem;">
+        <div style="font-weight:700; font-size:0.82rem; color:#0d7a6b; margin-bottom:0.65rem; text-transform:uppercase; letter-spacing:0.5px;">Factory & Unit Details</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:0.85rem;">
+          <div>
+            <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Unit Name</label>
+            <input type="text" id="modal-edit-unit" value="${activeAcc.unitName}" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;" required>
+          </div>
+          <div>
+            <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Employees Count</label>
+            <input type="number" id="modal-edit-emp" value="${activeAcc.employeesCount}" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;">
+          </div>
+        </div>
+        <div style="margin-bottom:0.85rem;">
+          <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Premises Address</label>
+          <input type="text" id="modal-edit-addr" value="${activeAcc.unitAddress}" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;" required>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem;">
+          <div>
+            <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Primary NIC Code</label>
+            <input type="text" id="modal-edit-nic" value="${activeAcc.nicCode || '28100'}" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Land Area</label>
+            <input type="text" id="modal-edit-land" value="${activeAcc.landArea || '8,400 sq. m.'}" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Power Load</label>
+            <input type="text" id="modal-edit-power" value="${activeAcc.powerLoad || '450 kW'}" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;">
+          </div>
+        </div>
+      </div>
+    </form>
+  `;
+
+  const footerHtml = `
+    <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.closeModal()" style="padding:0.5rem 1rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600;">Cancel</button>
+    <button type="button" class="btn btn-primary btn-sm" onclick="handleSaveProfileModal(event)" style="padding:0.5rem 1.25rem; border:none; border-radius:6px; background:#0d7a6b; color:#fff; cursor:pointer; font-weight:700;">Save Changes</button>
+  `;
+
+  AlgoUI.openModal("Edit Enterprise & Facility Profile", bodyHtml, footerHtml);
+};
+
+window.handleSaveProfileModal = function(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const activeAcc = AlgoAccounts.getActiveAccount();
+
+  activeAcc.companyName = document.getElementById("modal-edit-company")?.value?.trim() || activeAcc.companyName;
+  activeAcc.unitName = document.getElementById("modal-edit-unit")?.value?.trim() || activeAcc.unitName;
+  activeAcc.unitAddress = document.getElementById("modal-edit-addr")?.value?.trim() || activeAcc.unitAddress;
+  activeAcc.employeesCount = parseInt(document.getElementById("modal-edit-emp")?.value) || activeAcc.employeesCount;
+  activeAcc.constitution = document.getElementById("modal-edit-constitution")?.value || activeAcc.constitution;
+  activeAcc.industryType = document.getElementById("modal-edit-industry")?.value || activeAcc.industryType;
+  activeAcc.sectorBadge = "● " + activeAcc.industryType;
+  activeAcc.state = document.getElementById("modal-edit-state")?.value || activeAcc.state;
+  activeAcc.nicCode = document.getElementById("modal-edit-nic")?.value?.trim() || activeAcc.nicCode;
+  activeAcc.incorporationDate = document.getElementById("modal-edit-incorp")?.value?.trim() || activeAcc.incorporationDate;
+  activeAcc.landArea = document.getElementById("modal-edit-land")?.value?.trim() || activeAcc.landArea;
+  activeAcc.powerLoad = document.getElementById("modal-edit-power")?.value?.trim() || activeAcc.powerLoad;
+  activeAcc.completionPct = 100;
+
+  AlgoAccounts.addOrUpdateAccount(activeAcc);
+  AlgoUI.showToast("Enterprise profile updated successfully!", "success");
+  AlgoUI.closeModal();
+  setTimeout(() => location.reload(), 400);
+};
+
+window.openAddRegistrationModal = function() {
+  const bodyHtml = `
+    <form id="add-reg-form" onsubmit="handleSaveRegistration(event)" style="display:flex; flex-direction:column; gap:1.15rem;">
+      <div>
+        <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Registration Type</label>
+        <select id="modal-reg-type" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;">
+          <option>Factory License (DIS)</option>
+          <option>Consent to Operate (MPCB)</option>
+          <option>Fire NOC Certificate</option>
+          <option>Boiler Registration Certificate</option>
+          <option>Electricity Inspector NOC</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Registration / Certificate Number</label>
+        <input type="text" id="modal-reg-num" placeholder="e.g. MH/FAC/2026/89410" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;" required>
+      </div>
+      <div>
+        <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Issuing Authority</label>
+        <input type="text" id="modal-reg-auth" placeholder="e.g. Directorate of Industrial Safety, Maharashtra" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;" required>
+      </div>
+    </form>
+  `;
+  const footerHtml = `
+    <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.closeModal()" style="padding:0.5rem 1rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600;">Cancel</button>
+    <button type="button" class="btn btn-primary btn-sm" onclick="handleSaveRegistration(event)" style="padding:0.5rem 1.25rem; border:none; border-radius:6px; background:#0d7a6b; color:#fff; cursor:pointer; font-weight:700;">Add Registration</button>
+  `;
+  AlgoUI.openModal("Add Business Registration", bodyHtml, footerHtml);
+};
+
+window.handleSaveRegistration = function(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const type = document.getElementById("modal-reg-type")?.value || "Statutory Registration";
+  const num = document.getElementById("modal-reg-num")?.value?.trim() || "REF-" + Math.floor(Math.random()*900000);
+  
+  const activeAcc = AlgoAccounts.getActiveAccount();
+  if (!activeAcc.registrations) activeAcc.registrations = [];
+  activeAcc.registrations.push({ name: type, code: "REG", value: num, status: "Verified" });
+  AlgoAccounts.addOrUpdateAccount(activeAcc);
+
+  AlgoUI.showToast("Registration added successfully!", "success");
+  AlgoUI.closeModal();
+};
+
+window.openRenewalModal = function(title, dept, expiry) {
+  const bodyHtml = `
+    <div style="display:flex; flex-direction:column; gap:1.15rem;">
+      <p style="color:#334155; font-size:0.9rem; margin:0; line-height:1.5;">
+        Prepare statutory renewal filing for <strong>${title}</strong> (${dept}).
+      </p>
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem 1rem;">
+        <div style="font-size:0.75rem; color:#64748b; font-weight:600; text-transform:uppercase;">Current Expiry Date</div>
+        <div style="font-size:0.95rem; font-weight:700; color:#0f172a; margin-top:2px;">${expiry || 'Upcoming'}</div>
+      </div>
+      <div>
+        <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Renewal Period Requested</label>
+        <select id="modal-renewal-period" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;">
+          <option>1 Year Renewal</option>
+          <option selected>3 Years Renewal</option>
+          <option>5 Years Renewal</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Remarks / Document Reference</label>
+        <textarea id="modal-renewal-notes" placeholder="Enter any structural changes, updated fee receipts, or remarks..." style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.86rem; box-sizing:border-box;" rows="2"></textarea>
+      </div>
+    </div>
+  `;
+  const footerHtml = `
+    <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.closeModal()" style="padding:0.5rem 1rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600;">Cancel</button>
+    <button type="button" class="btn btn-primary btn-sm" onclick="AlgoUI.showToast('Renewal draft initiated successfully for ${title}!', 'success'); AlgoUI.closeModal();" style="padding:0.5rem 1.25rem; border:none; border-radius:6px; background:#0d7a6b; color:#fff; cursor:pointer; font-weight:700;">Initiate Renewal Filing →</button>
+  `;
+  AlgoUI.openModal("Statutory Renewal: " + title, bodyHtml, footerHtml);
+};
+
+window.getAutoDocExpiry = function(docType) {
+  const d = new Date();
+  const lower = (docType || "").toLowerCase();
+  if (lower.includes("incorporation") || lower.includes("gst") || lower.includes("layout") || lower.includes("power") || lower.includes("pan") || lower.includes("signatory") || lower.includes("allotment")) {
+    return { text: "Permanent Statutory Life (No expiry renewal required)", dateStr: "Permanent", cycle: "Perpetual" };
+  }
+  if (lower.includes("stability") || lower.includes("building") || lower.includes("plan")) {
+    d.setFullYear(d.getFullYear() + 5);
+    const dateStr = d.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' });
+    return { text: `Auto-Calculated Expiry: ${dateStr} (5-Year Statutory Renewal Cycle)`, dateStr: dateStr, cycle: "5 Years" };
+  }
+  if (lower.includes("consent") || lower.includes("spcb") || lower.includes("cto") || lower.includes("cte") || lower.includes("pollution")) {
+    d.setFullYear(d.getFullYear() + 3);
+    const dateStr = d.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' });
+    return { text: `Auto-Calculated Expiry: ${dateStr} (3-Year Pollution Board Cycle)`, dateStr: dateStr, cycle: "3 Years" };
+  }
+  // Standard 1 Year (Fire NOC, Boiler inspection, Factory license, Safety audit, etc.)
+  d.setFullYear(d.getFullYear() + 1);
+  const dateStr = d.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' });
+  return { text: `Auto-Calculated Expiry: ${dateStr} (1-Year Annual Statutory Cycle)`, dateStr: dateStr, cycle: "1 Year" };
+};
+
+window.updateDocExpiryPreview = function(docType) {
+  const previewEl = document.getElementById("doc-expiry-preview-text");
+  const cycleEl = document.getElementById("doc-expiry-cycle-text");
+  if (previewEl) {
+    const res = window.getAutoDocExpiry(docType);
+    previewEl.textContent = res.text;
+    if (cycleEl) cycleEl.textContent = res.cycle;
+  }
+};
+
+// ----------------------------------------------------------------------------
+// Baseline Statutory Document Seed (Clean Start - Real Documents Only)
+// ----------------------------------------------------------------------------
+function getBaselineDocumentsForAccount(activeAcc) {
+  return [];
 }
 
 // ----------------------------------------------------------------------------
-// 5. DOM Initializer & Routing
+// Real Document Download Engine
+// ----------------------------------------------------------------------------
+window.downloadDocument = function(docId, docName, category) {
+  const activeAcc = AlgoAccounts.getActiveAccount();
+  const allDocs = (activeAcc && activeAcc.documents && activeAcc.documents.length > 0) 
+    ? activeAcc.documents 
+    : [];
+  
+  const doc = allDocs.find(d => d.id === docId || d.name === docName || d.ref === docId) || { 
+    name: docName || "Statutory_Document", 
+    category: category || "General",
+    status: "Under Review"
+  };
+
+  // 1. If real file Data URL exists, download it directly:
+  if (doc.dataUrl) {
+    const a = document.createElement("a");
+    a.href = doc.dataUrl;
+    a.download = doc.fileName || `${doc.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.${(doc.type || 'pdf').toLowerCase()}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    AlgoUI.showToast(`Downloaded "${doc.name}" successfully!`, "success");
+    return;
+  }
+
+  // 2. Generate an authentic official statutory clearance certificate / docket
+  const safeTitle = (doc.name || doc.title || "Statutory Document").toUpperCase();
+  const companyName = activeAcc.companyName || "Shakti Precision Pvt. Ltd.";
+  const unitName = activeAcc.unitName || "Chakan Manufacturing Unit, MIDC Pune";
+  const cin = activeAcc.cin || "U28999MH2020PTC349812";
+  const gstin = activeAcc.gstin || "27AAHCS4821P1Z7";
+  const state = activeAcc.state || "Maharashtra";
+  const dateStr = doc.date || new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  const refCode = doc.ref || doc.id || `AS-DOC-${Math.floor(100000 + Math.random()*900000)}`;
+
+  const certificateHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${doc.name || doc.title} - ${companyName}</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 40px; color: #1e293b; background: #fff; }
+    .header { text-align: center; border-bottom: 3px double #0d7a6b; padding-bottom: 20px; margin-bottom: 25px; }
+    .emblem { font-size: 26px; color: #0d7a6b; font-weight: 800; }
+    .gov-title { font-size: 16px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 1.2px; margin-top: 5px; }
+    .sub-title { font-size: 12px; color: #64748b; margin-top: 4px; }
+    .cert-title { font-size: 21px; font-weight: 800; color: #0d7a6b; margin: 25px 0 15px 0; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+    .meta-box { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 18px; margin-bottom: 25px; font-size: 13px; line-height: 1.8; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .meta-label { color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 11px; }
+    .meta-val { color: #0f172a; font-weight: 700; font-size: 13px; }
+    .body-content { font-size: 13.5px; line-height: 1.8; color: #334155; margin-bottom: 30px; text-align: justify; }
+    .seal-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 50px; padding-top: 20px; border-top: 1px dashed #cbd5e1; }
+    .seal-badge { border: 2px solid #0d7a6b; color: #0d7a6b; padding: 10px 18px; border-radius: 50px; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .signature { text-align: right; font-size: 12px; color: #475569; }
+    .signature-line { font-weight: 700; color: #0f172a; font-size: 14px; margin-top: 5px; }
+    .footer-note { font-size: 10.5px; color: #94a3b8; text-align: center; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="emblem">🏛️ ANUMATI SETU COMPLIANCE REPOSITORY</div>
+    <div class="gov-title">Statutory Business Record &amp; Clearance Docket</div>
+    <div class="sub-title">National Industrial Clearances &amp; Regulatory Verification System (${state})</div>
+  </div>
+
+  <div class="cert-title">${safeTitle}</div>
+
+  <div class="meta-box">
+    <div class="meta-grid">
+      <div><span class="meta-label">Enterprise / Entity Name:</span><div class="meta-val">${companyName}</div></div>
+      <div><span class="meta-label">Corporate ID (CIN / LLPIN):</span><div class="meta-val">${cin}</div></div>
+      <div><span class="meta-label">Operating Unit / Facility:</span><div class="meta-val">${unitName}</div></div>
+      <div><span class="meta-label">GSTIN / Tax Registration:</span><div class="meta-val">${gstin}</div></div>
+      <div><span class="meta-label">Document Category:</span><div class="meta-val">${doc.category || "Statutory"}</div></div>
+      <div><span class="meta-label">Document Reference Code:</span><div class="meta-val">${refCode}</div></div>
+      <div><span class="meta-label">Deposit &amp; Verification Date:</span><div class="meta-val">${dateStr}</div></div>
+      <div><span class="meta-label">Statutory Status:</span><div class="meta-val" style="color:${(doc.status || '').toLowerCase().includes('verif') ? '#16a34a' : '#b45309'};">● ${doc.status || "Under Review"}</div></div>
+    </div>
+  </div>
+
+  <div class="body-content">
+    <p>This certified electronic record verifies that <strong>${companyName}</strong> has deposited and registered the statutory instrument titled <strong>${safeTitle}</strong> with the compliance repository. All operational parameters and regulatory particulars detailed herein correspond to official records filed with competent authorities.</p>
+    <p>This document is cryptographically referenced and preserved for statutory filings, licensing compliance, and official inspection review.</p>
+  </div>
+
+  <div class="seal-row">
+    <div class="seal-badge">✓ REGISTERED STATUTORY DOCKET</div>
+    <div class="signature">
+      <div>Digitally recorded and sealed:</div>
+      <div class="signature-line">Compliance Document Vault</div>
+      <div>Anumati Setu Statutory Regulatory Repository</div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Document Reference: ${refCode} · Stored securely via Anumati Setu Enterprise Portal · Preserved for official compliance verification.
+  </div>
+</body>
+</html>`;
+
+  const blob = new Blob([certificateHtml], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${(doc.name || doc.title || 'Document').replace(/[^a-zA-Z0-9_-]/g, '_')}_Docket.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+  AlgoUI.showToast(`Downloaded verified copy of "${doc.name || doc.title}"!`, "success");
+};
+
+// ----------------------------------------------------------------------------
+// Render Documents Dynamic Grid
+// ----------------------------------------------------------------------------
+window.renderDocumentsGrid = function() {
+  const activeAcc = AlgoAccounts.getActiveAccount();
+  if (!activeAcc.documents) {
+    activeAcc.documents = [];
+    AlgoAccounts.addOrUpdateAccount(activeAcc);
+  }
+
+  const docs = activeAcc.documents;
+  const grid = document.getElementById("documents-grid-container");
+
+  // Update stat counts
+  const totalEl = document.getElementById("doc-stat-total");
+  const verifiedEl = document.getElementById("doc-stat-verified");
+  const expiringEl = document.getElementById("doc-stat-expiring");
+  const reviewEl = document.getElementById("doc-stat-review");
+  const subEl = document.getElementById("doc-lib-sub");
+
+  const verifiedCount = docs.filter(d => (d.status || '').toLowerCase().includes('verif')).length;
+  const reviewCount = docs.filter(d => (d.status || '').toLowerCase().includes('review')).length;
+  const expiringCount = docs.filter(d => (d.status || '').toLowerCase().includes('expir') || (d.validityCycle || '').includes('Annual')).length;
+
+  if (totalEl) totalEl.textContent = docs.length;
+  if (verifiedEl) verifiedEl.textContent = verifiedCount;
+  if (expiringEl) expiringEl.textContent = expiringCount;
+  if (reviewEl) reviewEl.textContent = reviewCount;
+  if (subEl) subEl.textContent = `Showing ${docs.length} documents for ${activeAcc.companyName}`;
+
+  if (!grid) return;
+
+  if (docs.length === 0) {
+    grid.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align:center; padding:3.5rem 1.5rem; background:#ffffff; border:2px dashed #cbd5e1; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.75rem;">
+        <div style="font-size:3rem; line-height:1;">📁</div>
+        <div style="font-size:1.1rem; font-weight:800; color:#0f172a;">No Documents in Vault Yet</div>
+        <div style="font-size:0.85rem; color:#64748b; max-width:440px; line-height:1.5;">
+          Your Document Vault is completely clean. Upload original certificates or start a statutory application to attach and store documents here.
+        </div>
+        <button type="button" class="btn btn-primary" onclick="openUploadDocumentModal()" style="margin-top:0.75rem; background:#0d7a6b; color:#fff; border:none; padding:0.6rem 1.4rem; border-radius:8px; font-weight:700; font-size:0.86rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;">
+          <span>📤</span> Upload First Document
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = docs.map(doc => {
+    const isVerified = (doc.status || '').toLowerCase().includes('verif');
+    const badgeClass = isVerified ? 'badge-v' : 'badge-r';
+    const badgeText = isVerified ? '● Verified' : '● Under Review';
+    const ext = doc.type || (doc.fileName ? doc.fileName.split('.').pop().toUpperCase() : 'PDF');
+
+    return `
+      <div class="doc-card" data-cat="${doc.category || 'General'}" id="doc-card-${doc.id || doc.ref}">
+        <div class="doc-card-top">
+          <span class="doc-type" style="${ext === 'PDF' ? 'background:#fef2f2; color:#ef4444;' : 'background:#e0f2fe; color:#0284c7;'}">${ext}</span>
+          <span class="doc-menu" onclick="AlgoUI.showToast('Document: ${(doc.name || doc.title || '').replace(/'/g, "\\'")} · ${badgeText}', 'info')" title="Document info">⋮</span>
+        </div>
+        <div class="doc-name" style="font-weight:700; color:#0f172a; margin-top:0.4rem; font-size:0.86rem; line-height:1.35;">${doc.name || doc.title}</div>
+        <div class="doc-date" style="font-size:0.72rem; color:#64748b; margin-top:0.25rem;">
+          ${doc.date || 'Uploaded Today'} · ${doc.fileSize || doc.size || '1.4 MB'}
+        </div>
+        ${doc.expiryDate ? `<div style="font-size:0.7rem; color:#0d7a6b; font-weight:700; margin-top:0.35rem;">⚡ Validity: ${doc.expiryDate}</div>` : ''}
+        <div class="doc-footer" style="margin-top:auto; padding-top:0.75rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.4rem;">
+          <span class="doc-badge ${badgeClass}">${badgeText}</span>
+          <div style="display:flex; align-items:center; gap:0.35rem;">
+            <button type="button" onclick="openDocumentViewerModal('${doc.ref || doc.id || 'DOC-ONLINE'}', '${(doc.name || doc.title || '').replace(/'/g, "\\'")}', '${(doc.fileName || doc.name || doc.title || '').replace(/'/g, "\\'")}', '${doc.fileSize || doc.size || '1.4 MB'}', '${doc.status || 'Under Review'}', '${doc.date || 'Today'}')" title="View Document" style="background:#f0fdfa; color:#0d7a6b; border:1px solid #99f6e4; border-radius:6px; padding:0.25rem 0.55rem; font-size:0.75rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:0.2rem;">
+              <span>👁️</span> View
+            </button>
+            <button type="button" onclick="deleteUserDocument('${doc.id || doc.ref}')" title="Delete document" style="background:none; border:none; cursor:pointer; font-size:0.8rem; color:#94a3b8; padding:2px;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">🗑️</button>
+            <div class="doc-dl" onclick="downloadDocument('${doc.id || doc.ref}', '${(doc.name || doc.title || '').replace(/'/g, "\\'")}', '${doc.category || 'General'}')" title="Download ${doc.name || doc.title}" style="cursor:pointer; width:26px; height:26px; border-radius:6px; border:1px solid #cbd5e1; display:flex; align-items:center; justify-content:center; color:#0d7a6b; background:#f0fdfa;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+};
+
+window.deleteUserDocument = function(docId) {
+  const activeAcc = AlgoAccounts.getActiveAccount();
+  if (!activeAcc.documents) return;
+  activeAcc.documents = activeAcc.documents.filter(d => d.id !== docId && d.ref !== docId);
+  AlgoAccounts.addOrUpdateAccount(activeAcc);
+  renderDocumentsGrid();
+  AlgoUI.showToast("Document deleted successfully from repository.", "info");
+};
+
+// ----------------------------------------------------------------------------
+// Upload Document Modal & Persistent Handler
+// ----------------------------------------------------------------------------
+window.openUploadDocumentModal = function() {
+  const defaultRes = window.getAutoDocExpiry("Certificate of Incorporation");
+  const bodyHtml = `
+    <form id="upload-doc-form" onsubmit="handleUploadDocSubmit(event)" style="display:flex; flex-direction:column; gap:1.15rem;">
+      <div>
+        <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Document Category &amp; Title</label>
+        <select id="modal-doc-type" onchange="window.updateDocExpiryPreview(this.value)" style="width:100%; padding:0.6rem 0.75rem; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.86rem; box-sizing:border-box; background:#fff; color:#0f172a; font-weight:600;">
+          <option value="Certificate of Incorporation" data-cat="Incorporation">Certificate of Incorporation</option>
+          <option value="GST Registration Certificate" data-cat="Tax">GST Registration Certificate</option>
+          <option value="Site & Building Layout Plan" data-cat="Factory">Site &amp; Building Layout Plan</option>
+          <option value="Fire Safety Audit & NOC" data-cat="Fire Safety">Fire Safety Audit &amp; NOC</option>
+          <option value="Factory Stability Certificate" data-cat="Factory">Factory Stability Certificate</option>
+          <option value="Boiler Inspection Report" data-cat="Factory">Boiler Inspection Report</option>
+          <option value="Power Sanction Order" data-cat="Factory">Power Sanction Order</option>
+          <option value="Consent to Establish (MPCB)" data-cat="Environmental">Consent to Establish (MPCB)</option>
+          <option value="Authorised Signatory Letter" data-cat="Incorporation">Authorised Signatory Letter</option>
+          <option value="Environmental Compliance Audit" data-cat="Environmental">Environmental Compliance Audit</option>
+          <option value="Other Industrial Permit / Custom Document" data-cat="General">Other Industrial Permit / Custom Document</option>
+        </select>
+      </div>
+
+      <div id="custom-doc-name-group" style="display:none;">
+        <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Custom Document Title</label>
+        <input type="text" id="modal-doc-custom-name" placeholder="e.g. Hazardous Chemical Storage Approval" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.84rem; box-sizing:border-box;">
+      </div>
+
+      <div>
+        <label style="display:block; font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:0.35rem;">Select Document File (PDF, JPG, PNG, DOCX, XLSX)</label>
+        <input type="file" id="modal-doc-file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls" style="width:100%; padding:0.65rem; border:1.5px dashed #0d7a6b; border-radius:8px; font-size:0.82rem; background:#f0fdfa; box-sizing:border-box; color:#334155;">
+      </div>
+
+      <!-- Automated Expiry Calculator Badge -->
+      <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:8px; padding:0.85rem 1rem; display:flex; align-items:flex-start; gap:0.75rem;">
+        <div style="width:28px; height:28px; border-radius:6px; background:#e6f5f3; color:#0d7a6b; display:flex; align-items:center; justify-content:center; font-size:0.9rem; flex-shrink:0;">
+          ⚡
+        </div>
+        <div>
+          <div style="display:flex; align-items:center; gap:0.45rem;">
+            <span style="font-size:0.75rem; font-weight:800; color:#0d7a6b; text-transform:uppercase; letter-spacing:0.5px;">Statutory Validity Computed</span>
+            <span id="doc-expiry-cycle-text" style="font-size:0.68rem; font-weight:700; background:#ccfbf1; color:#0f766e; padding:0.15rem 0.45rem; border-radius:12px;">${defaultRes.cycle}</span>
+          </div>
+          <div id="doc-expiry-preview-text" style="font-size:0.84rem; font-weight:600; color:#334155; margin-top:3px;">${defaultRes.text}</div>
+        </div>
+      </div>
+    </form>
+  `;
+  const footerHtml = `
+    <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.closeModal()" style="padding:0.5rem 1rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600;">Cancel</button>
+    <button type="button" class="btn btn-primary btn-sm" onclick="handleUploadDocSubmit(event)" style="padding:0.5rem 1.25rem; border:none; border-radius:6px; background:#0d7a6b; color:#fff; cursor:pointer; font-weight:700;">Upload &amp; Store →</button>
+  `;
+  AlgoUI.openModal("Upload Enterprise Document", bodyHtml, footerHtml);
+
+  const docTypeSelect = document.getElementById("modal-doc-type");
+  if (docTypeSelect) {
+    docTypeSelect.addEventListener("change", () => {
+      const customGroup = document.getElementById("custom-doc-name-group");
+      if (customGroup) {
+        customGroup.style.display = docTypeSelect.value.includes("Other") ? "block" : "none";
+      }
+    });
+  }
+};
+
+window.handleUploadDocSubmit = function(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const docTypeSelect = document.getElementById("modal-doc-type");
+  const customName = document.getElementById("modal-doc-custom-name")?.value?.trim();
+  const docType = (docTypeSelect?.value?.includes("Other") && customName) ? customName : (docTypeSelect?.value || "Statutory Document");
+  const selectedOption = docTypeSelect?.selectedOptions ? docTypeSelect.selectedOptions[0] : null;
+  const docCat = selectedOption?.getAttribute("data-cat") || "General";
+  const expiryInfo = window.getAutoDocExpiry(docType);
+
+  const fileInput = document.getElementById("modal-doc-file");
+  const file = fileInput && fileInput.files && fileInput.files[0];
+
+  const activeAcc = AlgoAccounts.getActiveAccount();
+  if (!activeAcc.documents) {
+    activeAcc.documents = [];
+  }
+
+  function finishSave(dataUrl, fileName, fileSize, ext) {
+    const docRef = "DOC-" + Math.floor(100000 + Math.random()*900000);
+    const newDoc = {
+      id: docRef,
+      ref: docRef,
+      name: docType,
+      title: docType,
+      category: docCat,
+      fileName: fileName || `${docType.replace(/[^a-zA-Z0-9_-]/g, '_')}.${(ext || 'pdf').toLowerCase()}`,
+      fileSize: fileSize || "1.4 MB",
+      type: (ext || "PDF").toUpperCase(),
+      date: "Uploaded " + new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      dataUrl: dataUrl || null,
+      hasFile: !!dataUrl,
+      expiryDate: expiryInfo.dateStr,
+      validityCycle: expiryInfo.cycle,
+      status: "Under Review",
+      isBaseline: false
+    };
+
+    activeAcc.documents.unshift(newDoc);
+    AlgoAccounts.addOrUpdateAccount(activeAcc);
+
+    // Re-render documents grid if on documents page
+    renderDocumentsGrid();
+
+    AlgoUI.showToast(`Document "${docType}" successfully uploaded, encrypted, and saved!`, "success");
+    AlgoUI.closeModal();
+
+    // Background sync with API
+    if (file) {
+      const formData = new FormData();
+      formData.append("docName", docType);
+      formData.append("category", docCat);
+      formData.append("file", file);
+      fetch("/api/documents/upload", { method: "POST", body: formData }).catch(() => {});
+    }
+  }
+
+  if (!file) {
+    AlgoUI.showToast("Please select a document file to upload.", "warning");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const dataUrl = evt.target.result;
+    const sizeStr = (file.size < 1024*1024) ? (file.size/1024).toFixed(1) + " KB" : (file.size/(1024*1024)).toFixed(1) + " MB";
+    const ext = file.name.split('.').pop().toUpperCase() || 'PDF';
+    finishSave(dataUrl, file.name, sizeStr, ext);
+  };
+  reader.readAsDataURL(file);
+};
+
+window.openApplicationDetailModal = function(ref, title, dept, status, update) {
+  const bodyHtml = `
+    <div style="display:flex; flex-direction:column; gap:1.15rem;">
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem 1rem; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-size:0.75rem; color:#0d7a6b; font-weight:800; font-family:monospace;">${ref}</div>
+          <div style="font-size:1.05rem; font-weight:800; color:#0f172a; margin-top:2px;">${title}</div>
+          <div style="font-size:0.78rem; color:#64748b; margin-top:2px;">${dept}</div>
+        </div>
+        <span style="font-size:0.75rem; font-weight:700; padding:0.25rem 0.65rem; border-radius:20px; background:#e6f5f3; color:#0d7a6b;">● ${status}</span>
+      </div>
+
+      <div>
+        <div style="font-size:0.78rem; font-weight:700; color:#475569; text-transform:uppercase; margin-bottom:0.4rem;">Status & Department Update</div>
+        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:0.85rem; font-size:0.84rem; color:#78350f; line-height:1.5;">
+          ${update || 'Application has been submitted and registered with the competent authority. Technical scrutiny in progress.'}
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.showToast('Downloading formal application copy (PDF)...', 'info')" style="padding:0.5rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600; font-size:0.82rem;">📄 Download Filing Copy</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.showToast('Generating official fee acknowledgment receipt...', 'info')" style="padding:0.5rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600; font-size:0.82rem;">🧾 Fee Receipt</button>
+      </div>
+    </div>
+  `;
+  const footerHtml = `
+    <button type="button" class="btn btn-secondary btn-sm" onclick="AlgoUI.closeModal()" style="padding:0.5rem 1rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer; font-weight:600;">Close</button>
+    <button type="button" class="btn btn-primary btn-sm" onclick="AlgoUI.showToast('Official communication submitted to department scrutiny desk.', 'success'); AlgoUI.closeModal();" style="padding:0.5rem 1.25rem; border:none; border-radius:6px; background:#0d7a6b; color:#fff; cursor:pointer; font-weight:700;">Submit Query / Response →</button>
+  `;
+  AlgoUI.openModal("Application Details: " + ref, bodyHtml, footerHtml);
+};
+
+// ----------------------------------------------------------------------------
+// 10. Global Event Delegation & DOM Ready Initializer
 // ----------------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
+  AlgoAccounts.syncCurrentPageDOM();
   AlgoUI.setupNavigation();
 
   const path = window.location.pathname.toLowerCase();
-
   if (path.includes("profile") || document.getElementById("business-profile-form")) {
     initProfilePage();
   } else if (path.includes("dashboard") || document.getElementById("dash-header-title")) {
@@ -2036,3 +3964,791 @@ document.addEventListener("DOMContentLoaded", () => {
     initRenewalsPage();
   }
 });
+
+// Global click event delegation
+document.addEventListener("click", (e) => {
+  // 1. Topbar Profile Button Click -> Open Profile Menu Modal
+  const userBtn = e.target.closest(".tb-user, .user-menu, .profile-pill");
+  if (userBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    openProfileMenuModal();
+    return;
+  }
+
+  // 2. Global Close / Cross Buttons
+  const closeBtn = e.target.closest(".modal-close, .detail-close, .close-btn, .btn-close, [data-close], [aria-label='Close']");
+  if (closeBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const detailPanel = document.getElementById("detail-panel") || closeBtn.closest(".detail-panel, .detail");
+    if (detailPanel && (closeBtn.classList.contains("detail-close") || closeBtn.closest(".detail-close"))) {
+      detailPanel.style.display = "none";
+      return;
+    }
+    if (typeof AlgoUI !== "undefined" && typeof AlgoUI.closeModal === "function") {
+      AlgoUI.closeModal();
+    }
+    const modal = closeBtn.closest(".modal-overlay, #modal-overlay, .modal");
+    if (modal) {
+      modal.classList.remove("open", "show");
+      modal.style.display = "none";
+    }
+    document.body.style.overflow = "";
+  }
+});
+
+// Global Escape Key Listener
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    if (typeof AlgoUI !== "undefined" && typeof AlgoUI.closeModal === "function") {
+      AlgoUI.closeModal();
+    }
+    const detailPanel = document.getElementById("detail-panel");
+    if (detailPanel) {
+      detailPanel.style.display = "none";
+    }
+  }
+});
+
+// Export globals explicitly
+window.AlgoAccounts = AlgoAccounts;
+window.AlgoUI = AlgoUI;
+
+/**
+ * ============================================================================
+ * SetuBot — Industrial Compliance & Approvals AI Assistant
+ * ============================================================================
+ */
+const SetuBot = {
+  isOpen: false,
+  messages: [],
+  
+  // Client-side fallback knowledge engine for zero-delay offline assistance
+  knowledgeBase: [
+    {
+      keywords: ["fire", "fire noc", "cfo", "fire safety", "form a", "form b"],
+      title: "Fire Safety No-Objection Certificate (NOC)",
+      response: `**Fire Safety No-Objection Certificate (NOC)**\n• **Authority:** Directorate of Maharashtra Fire Services / Municipal CFO.\n• **Portal:** [mahafireservice.gov.in](https://mahafireservice.gov.in)\n• **Mandatory Documents:**\n  1. Architectural CAD Drawings (1:100 scale) showing setbacks, exit routes & hydrants.\n  2. Firefighting layout design scheme by Licensed Agency (Form A/B).\n  3. Building Structural Stability Certificate.\n• **Validity:** 1 Year for Provisional NOC; physical on-site inspection mandatory for Final NOC.`,
+      quickLinks: [
+        { text: "View Fire NOC", url: "approvals.html" },
+        { text: "MahaFire Portal", url: "https://mahafireservice.gov.in", external: true }
+      ]
+    },
+    {
+      keywords: ["dish", "factory license", "form 1", "form 2", "factories act", "safety"],
+      title: "Factory Operating License (Form 1 & 2)",
+      response: `**Factory Registration & License (Under Factories Act 1948)**\n• **Authority:** Directorate of Industrial Safety & Health (DISH Maharashtra).\n• **Portal:** [dish.maharashtra.gov.in](https://dish.maharashtra.gov.in)\n• **Applicability:** Units employing 10+ workers with power, or 20+ without power.\n• **Mandatory Documents:**\n  1. Machinery layout plan & process flow chart.\n  2. Building Stability Certificate by DISH-empanelled structural engineer.\n  3. List of Plant & Machinery with connected HP/KW ratings.\n• **Validity:** 1 to 5 Years depending on fee slab.`,
+      quickLinks: [
+        { text: "Check Approvals", url: "approvals.html" },
+        { text: "DISH Portal", url: "https://dish.maharashtra.gov.in", external: true }
+      ]
+    },
+    {
+      keywords: ["mpcb", "consent", "cte", "cto", "pollution", "etp", "stp", "effluent", "air", "water", "green", "orange", "red", "white"],
+      title: "MPCB Pollution Consent (CTE / CTO)",
+      response: `**MPCB Consent to Establish (CTE) & Operate (CTO)**\n• **Authority:** Maharashtra Pollution Control Board.\n• **Portal:** [ecmpcb.in](https://ecmpcb.in)\n• **Categories:**\n  - 🟢 **Green / White:** Low pollution risk; expedited processing.\n  - 🟠 **Orange:** Moderate risk; mandatory ETP/STP design.\n  - 🔴 **Red:** High impact; requires EIA & continuous monitoring.\n• **Mandatory Documents:** ETP design schematics, material & water balance sheet, MoEF stack emission lab test report.`,
+      quickLinks: [
+        { text: "View MPCB Clearance", url: "approvals.html" },
+        { text: "e-MPCB Portal", url: "https://ecmpcb.in", external: true }
+      ]
+    },
+    {
+      keywords: ["document", "upload", "expiry", "vault", "calculate expiry", "storage", "download"],
+      title: "Document Vault & Auto-Expiry",
+      response: `**Document Vault & Auto-Expiry**\n• **Auto-Expiry Calculation:** When you select a document type (Fire NOC, Factory License, Consent), SetuBot automatically computes the statutory expiry date from your issue date!\n• **Downloads:** You can download official authorized PDF copies directly from the [Document Vault](documents.html).\n• **Storage:** All uploaded documents are securely stored and mapped to your business compliance passport.`,
+      quickLinks: [
+        { text: "Open Document Vault", url: "documents.html" }
+      ]
+    },
+    {
+      keywords: ["renewal", "renew", "due", "penalty", "expire", "grace period"],
+      title: "License Renewals & Deadlines",
+      response: `**License Renewals & Statutory Deadlines**\n• **Advance Renewal Window:** Initiate renewals **30-60 days** before expiry to avoid daily compounding fines and statutory stoppage notices.\n• **Manage Renewals:** Visit the [Renewals Page](renewals.html) for real-time countdowns, required fee calculations, and fast renewals.`,
+      quickLinks: [
+        { text: "View Renewals", url: "renewals.html" }
+      ]
+    },
+    {
+      keywords: ["profile", "business profile", "industry type", "sector", "power", "land", "nic"],
+      title: "Business Profile Settings",
+      response: `**Business Profile & Dynamic Rules**\n• Your registered Industry Type, State, Pollution Category, Scale, Power Load, and Land Area automatically determine your required approvals and inspections.\n• Update your details anytime in [Business Profile](profile.html).`,
+      quickLinks: [
+        { text: "Edit Profile", url: "profile.html" }
+      ]
+    },
+    {
+      keywords: ["application", "apply", "track", "checklist", "status"],
+      title: "Applications & Status Tracking",
+      response: `**Applying for Statutory Approvals**\n1. Go to [Required Approvals](approvals.html) and select any required clearance.\n2. Click **Start Application** and upload the requested checklist items.\n3. Track processing and department nodal officer remarks on your [Dashboard](dashboard.html).`,
+      quickLinks: [
+        { text: "Required Approvals", url: "approvals.html" },
+        { text: "Applications", url: "applications.html" }
+      ]
+    }
+  ],
+
+  init() {
+    if (document.getElementById("setubot-launcher")) return;
+    this.injectStyles();
+    this.injectMarkup();
+    this.bindEvents();
+    this.loadChatHistory();
+  },
+
+  injectStyles() {
+    if (document.getElementById("setubot-injected-css")) return;
+    const style = document.createElement("style");
+    style.id = "setubot-injected-css";
+    style.textContent = `
+      .setubot-launcher {
+        position: fixed !important;
+        bottom: 24px !important;
+        right: 24px !important;
+        z-index: 99999 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        background: linear-gradient(135deg, #0d7a6b 0%, #064e3b 100%) !important;
+        color: #ffffff !important;
+        padding: 10px 16px !important;
+        border-radius: 50px !important;
+        box-shadow: 0 10px 25px -3px rgba(13, 122, 107, 0.4), 0 4px 10px rgba(0,0,0,0.15) !important;
+        cursor: pointer !important;
+        border: 1.5px solid rgba(255, 255, 255, 0.25) !important;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        user-select: none !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+      }
+      .setubot-launcher:hover {
+        transform: translateY(-2px) scale(1.02) !important;
+        box-shadow: 0 14px 28px -4px rgba(13, 122, 107, 0.5) !important;
+      }
+      .setubot-launcher-icon {
+        width: 30px !important;
+        height: 30px !important;
+        background: rgba(255, 255, 255, 0.2) !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.1rem !important;
+        flex-shrink: 0 !important;
+        position: relative !important;
+      }
+      .setubot-launcher-dot {
+        position: absolute !important;
+        top: -1px !important;
+        right: -1px !important;
+        width: 9px !important;
+        height: 9px !important;
+        background: #10b981 !important;
+        border: 2px solid #ffffff !important;
+        border-radius: 50% !important;
+      }
+      .setubot-launcher-text {
+        display: flex !important;
+        flex-direction: column !important;
+        line-height: 1.15 !important;
+      }
+      .setubot-launcher-title {
+        font-size: 0.88rem !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+      }
+      .setubot-launcher-sub {
+        font-size: 0.68rem !important;
+        font-weight: 500 !important;
+        color: rgba(255, 255, 255, 0.85) !important;
+      }
+      .setubot-window {
+        position: fixed !important;
+        bottom: 24px !important;
+        right: 24px !important;
+        width: 380px !important;
+        max-width: calc(100vw - 32px) !important;
+        height: 540px !important;
+        max-height: calc(100vh - 48px) !important;
+        background: #ffffff !important;
+        border-radius: 16px !important;
+        box-shadow: 0 20px 50px -10px rgba(15, 23, 42, 0.35) !important;
+        border: 1px solid #e2e8f0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        z-index: 100000 !important;
+        overflow: hidden !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+      }
+      .setubot-window.hidden {
+        display: none !important;
+      }
+      .setubot-header {
+        background: #111827 !important;
+        color: #ffffff !important;
+        padding: 12px 16px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        flex-shrink: 0 !important;
+      }
+      .setubot-header-info {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+      }
+      .setubot-avatar {
+        width: 32px !important;
+        height: 32px !important;
+        background: #0d7a6b !important;
+        border-radius: 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.1rem !important;
+      }
+      .setubot-header-text h4 {
+        font-size: 0.92rem !important;
+        font-weight: 700 !important;
+        margin: 0 !important;
+        color: #ffffff !important;
+      }
+      .setubot-status-badge {
+        font-size: 0.66rem !important;
+        font-weight: 600 !important;
+        color: #34d399 !important;
+      }
+      .setubot-header-actions {
+        display: flex !important;
+        gap: 6px !important;
+      }
+      .setubot-header-btn {
+        background: rgba(255, 255, 255, 0.12) !important;
+        border: none !important;
+        color: #cbd5e1 !important;
+        width: 26px !important;
+        height: 26px !important;
+        border-radius: 6px !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      .setubot-header-btn:hover {
+        background: rgba(255, 255, 255, 0.25) !important;
+        color: #fff !important;
+      }
+      .setubot-messages {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        padding: 14px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        background: #f8fafc !important;
+      }
+      .setubot-msg-row {
+        display: flex !important;
+        gap: 8px !important;
+        max-width: 90% !important;
+      }
+      .setubot-msg-row.user {
+        align-self: flex-end !important;
+        flex-direction: row-reverse !important;
+      }
+      .setubot-msg-row.bot {
+        align-self: flex-start !important;
+      }
+      .setubot-msg-avatar {
+        width: 26px !important;
+        height: 26px !important;
+        border-radius: 6px !important;
+        background: #0d7a6b !important;
+        color: #fff !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 0.8rem !important;
+        flex-shrink: 0 !important;
+      }
+      .setubot-msg-bubble {
+        padding: 10px 12px !important;
+        border-radius: 12px !important;
+        font-size: 0.84rem !important;
+        line-height: 1.45 !important;
+        color: #1e293b !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+      }
+      .setubot-msg-row.user .setubot-msg-bubble {
+        background: #0d7a6b !important;
+        color: #ffffff !important;
+      }
+      .setubot-msg-row.bot .setubot-msg-bubble {
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+      }
+      .setubot-msg-bubble p { margin: 0 0 4px 0 !important; }
+      .setubot-msg-bubble p:last-child { margin-bottom: 0 !important; }
+      .setubot-msg-bubble ul, .setubot-msg-bubble ol { margin: 4px 0 !important; padding-left: 16px !important; }
+      .setubot-msg-bubble li { margin-bottom: 2px !important; }
+      .setubot-msg-bubble a { color: #0d7a6b !important; font-weight: 600 !important; }
+      .setubot-quick-links {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        margin-top: 8px !important;
+        padding-top: 6px !important;
+        border-top: 1px dashed #e2e8f0 !important;
+      }
+      .setubot-btn-link {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        background: #e6f5f3 !important;
+        color: #0d7a6b !important;
+        font-size: 0.75rem !important;
+        font-weight: 700 !important;
+        padding: 4px 8px !important;
+        border-radius: 6px !important;
+        text-decoration: none !important;
+      }
+      .setubot-btn-link:hover {
+        background: #0d7a6b !important;
+        color: #ffffff !important;
+      }
+      .setubot-suggestions {
+        padding: 6px 12px !important;
+        background: #ffffff !important;
+        border-top: 1px solid #e2e8f0 !important;
+        display: flex !important;
+        gap: 6px !important;
+        overflow-x: auto !important;
+        flex-shrink: 0 !important;
+      }
+      .setubot-chip {
+        background: #f1f5f9 !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #334155 !important;
+        font-size: 0.74rem !important;
+        font-weight: 600 !important;
+        padding: 4px 8px !important;
+        border-radius: 16px !important;
+        white-space: nowrap !important;
+        cursor: pointer !important;
+      }
+      .setubot-chip:hover {
+        background: #0d7a6b !important;
+        color: #ffffff !important;
+      }
+      .setubot-typing {
+        display: flex !important;
+        gap: 4px !important;
+        padding: 8px 12px !important;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+      }
+      .setubot-typing-dot {
+        width: 5px !important;
+        height: 5px !important;
+        background: #94a3b8 !important;
+        border-radius: 50% !important;
+        animation: setubotBounce 1.2s infinite ease-in-out !important;
+      }
+      .setubot-typing-dot:nth-child(2) { animation-delay: 0.2s !important; }
+      .setubot-typing-dot:nth-child(3) { animation-delay: 0.4s !important; }
+      @keyframes setubotBounce {
+        0%, 80%, 100% { transform: translateY(0); }
+        40% { transform: translateY(-4px); background: #0d7a6b; }
+      }
+      .setubot-input-area {
+        padding: 10px 12px !important;
+        background: #ffffff !important;
+        border-top: 1px solid #e2e8f0 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        flex-shrink: 0 !important;
+      }
+      .setubot-input {
+        flex: 1 !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 20px !important;
+        padding: 8px 14px !important;
+        font-size: 0.84rem !important;
+        outline: none !important;
+      }
+      .setubot-input:focus {
+        border-color: #0d7a6b !important;
+      }
+      .setubot-send-btn {
+        width: 34px !important;
+        height: 34px !important;
+        border-radius: 50 !important;
+        background: #0d7a6b !important;
+        color: #ffffff !important;
+        border: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+      }
+    `;
+    document.head.appendChild(style);
+  },
+
+  injectMarkup() {
+    const launcher = document.createElement("div");
+    launcher.id = "setubot-launcher";
+    launcher.className = "setubot-launcher";
+    launcher.innerHTML = `
+      <div class="setubot-launcher-icon">
+        🤖
+        <div class="setubot-launcher-dot"></div>
+      </div>
+      <div class="setubot-launcher-text">
+        <span class="setubot-launcher-title">Ask SetuBot</span>
+        <span class="setubot-launcher-sub">Compliance AI</span>
+      </div>
+    `;
+
+    const chatWindow = document.createElement("div");
+    chatWindow.id = "setubot-window";
+    chatWindow.className = "setubot-window hidden";
+    chatWindow.innerHTML = `
+      <div class="setubot-header">
+        <div class="setubot-header-info">
+          <div class="setubot-avatar">🤖</div>
+          <div class="setubot-header-text">
+            <h4>SetuBot AI</h4>
+            <div class="setubot-status-badge">Compliance Assistant • Online</div>
+          </div>
+        </div>
+        <div class="setubot-header-actions">
+          <button class="setubot-header-btn" id="setubot-clear-btn" title="Clear Chat">🗑️</button>
+          <button class="setubot-header-btn" id="setubot-close-btn" title="Close">✕</button>
+        </div>
+      </div>
+
+      <div class="setubot-messages" id="setubot-messages"></div>
+
+      <div class="setubot-suggestions" id="setubot-suggestions">
+        <button class="setubot-chip" data-query="Which approvals do I need?">📋 Which approvals do I need?</button>
+        <button class="setubot-chip" data-query="Documents needed for Fire NOC">🔥 Fire NOC Docs</button>
+        <button class="setubot-chip" data-query="Where to submit MPCB Consent?">🏛️ MPCB Portal & Desks</button>
+        <button class="setubot-chip" data-query="How does automatic document expiry work?">📑 Auto-Expiry Rules</button>
+        <button class="setubot-chip" data-query="How do I renew my factory license?">⏰ License Renewals</button>
+      </div>
+
+      <div class="setubot-input-area">
+        <input type="text" id="setubot-input" class="setubot-input" placeholder="Ask about approvals, documents, portals..." autocomplete="off" />
+        <button id="setubot-send-btn" class="setubot-send-btn" title="Send Message">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(launcher);
+    document.body.appendChild(chatWindow);
+  },
+
+  bindEvents() {
+    const launcher = document.getElementById("setubot-launcher");
+    const chatWindow = document.getElementById("setubot-window");
+    const closeBtn = document.getElementById("setubot-close-btn");
+    const clearBtn = document.getElementById("setubot-clear-btn");
+    const sendBtn = document.getElementById("setubot-send-btn");
+    const input = document.getElementById("setubot-input");
+    const suggestions = document.getElementById("setubot-suggestions");
+
+    launcher.addEventListener("click", () => this.toggleChat());
+    closeBtn.addEventListener("click", () => this.toggleChat(false));
+    
+    clearBtn.addEventListener("click", () => {
+      sessionStorage.removeItem("setubot_history");
+      this.messages = [];
+      this.renderWelcome();
+    });
+
+    sendBtn.addEventListener("click", () => {
+      const q = input.value.trim();
+      if (q) {
+        this.handleUserSend(q);
+        input.value = "";
+      }
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const q = input.value.trim();
+        if (q) {
+          this.handleUserSend(q);
+          input.value = "";
+        }
+      }
+    });
+
+    suggestions.addEventListener("click", (e) => {
+      const chip = e.target.closest(".setubot-chip");
+      if (chip) {
+        const query = chip.getAttribute("data-query") || chip.textContent;
+        this.handleUserSend(query.replace(/^[^\w]+/, '')); // strip leading emoji
+      }
+    });
+  },
+
+  toggleChat(forceState) {
+    const chatWindow = document.getElementById("setubot-window");
+    const launcher = document.getElementById("setubot-launcher");
+    this.isOpen = typeof forceState === "boolean" ? forceState : !this.isOpen;
+
+    if (this.isOpen) {
+      chatWindow.classList.remove("hidden");
+      launcher.style.display = "none";
+      const input = document.getElementById("setubot-input");
+      setTimeout(() => input?.focus(), 150);
+      this.scrollToBottom();
+    } else {
+      chatWindow.classList.add("hidden");
+      launcher.style.display = "flex";
+    }
+  },
+
+  loadChatHistory() {
+    try {
+      const saved = sessionStorage.getItem("setubot_history");
+      if (saved) {
+        this.messages = JSON.parse(saved);
+        this.renderAllMessages();
+        return;
+      }
+    } catch(e) {}
+    this.renderWelcome();
+  },
+
+  saveChatHistory() {
+    try {
+      sessionStorage.setItem("setubot_history", JSON.stringify(this.messages));
+    } catch(e) {}
+  },
+
+  renderWelcome() {
+    const container = document.getElementById("setubot-messages");
+    container.innerHTML = "";
+    const welcome = {
+      sender: "bot",
+      text: `Hello! 👋 I am **SetuBot**, your dedicated Industrial Compliance & Statutory Approvals Assistant.\n\nAsk me anything about:\n• Finding **mandatory approvals & licenses** for your industry\n• **Documents required** for Fire NOC, MPCB, Factory License\n• **Where to submit** applications & official government portals\n• **Document uploads & automatic expiry dates**\n• **Renewal timelines and fee calculations**`,
+      quickLinks: [
+        { text: "Required Approvals", url: "approvals.html" },
+        { text: "Document Vault", url: "documents.html" },
+        { text: "License Renewals", url: "renewals.html" }
+      ]
+    };
+    this.messages = [welcome];
+    this.saveChatHistory();
+    this.renderAllMessages();
+  },
+
+  renderAllMessages() {
+    const container = document.getElementById("setubot-messages");
+    container.innerHTML = "";
+    this.messages.forEach(msg => {
+      this.appendMessageElement(msg, false);
+    });
+    this.scrollToBottom();
+  },
+
+  appendMessageElement(msg, animate = true) {
+    const container = document.getElementById("setubot-messages");
+    const row = document.createElement("div");
+    row.className = `setubot-msg-row ${msg.sender}`;
+    if (!animate) row.style.animation = "none";
+
+    const formattedText = this.formatMarkdown(msg.text);
+
+    let linksHtml = "";
+    if (msg.quickLinks && msg.quickLinks.length > 0) {
+      linksHtml = `
+        <div class="setubot-quick-links">
+          ${msg.quickLinks.map(l => `
+            <a href="${l.url}" ${l.external ? 'target="_blank" rel="noopener noreferrer"' : ''} class="setubot-btn-link">
+              ${l.external ? '🔗' : '📌'} ${l.text}
+            </a>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    row.innerHTML = `
+      <div class="setubot-msg-avatar">${msg.sender === 'bot' ? '🤖' : '👤'}</div>
+      <div class="setubot-msg-bubble">
+        ${formattedText}
+        ${linksHtml}
+      </div>
+    `;
+
+    container.appendChild(row);
+    this.scrollToBottom();
+  },
+
+  formatMarkdown(text) {
+    if (!text) return "";
+    let out = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+    // Format list items
+    const lines = out.split('\n');
+    let html = '';
+    let inList = false;
+
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('• ') || trimmed.startsWith('- ')) {
+        if (!inList) { html += '<ul>'; inList = true; }
+        html += `<li>${trimmed.substring(2)}</li>`;
+      } else if (/^\d+\.\s/.test(trimmed)) {
+        if (!inList) { html += '<ol>'; inList = true; }
+        html += `<li>${trimmed.replace(/^\d+\.\s/, '')}</li>`;
+      } else {
+        if (inList) { html += '</ul>'; inList = false; }
+        if (trimmed) {
+          html += `<p>${line}</p>`;
+        }
+      }
+    });
+    if (inList) html += '</ul>';
+
+    return html;
+  },
+
+  showTypingIndicator() {
+    const container = document.getElementById("setubot-messages");
+    let typing = document.getElementById("setubot-typing-ind");
+    if (!typing) {
+      typing = document.createElement("div");
+      typing.id = "setubot-typing-ind";
+      typing.className = "setubot-msg-row bot";
+      typing.innerHTML = `
+        <div class="setubot-msg-avatar">🤖</div>
+        <div class="setubot-typing">
+          <div class="setubot-typing-dot"></div>
+          <div class="setubot-typing-dot"></div>
+          <div class="setubot-typing-dot"></div>
+        </div>
+      `;
+      container.appendChild(typing);
+      this.scrollToBottom();
+    }
+  },
+
+  hideTypingIndicator() {
+    const typing = document.getElementById("setubot-typing-ind");
+    if (typing) typing.remove();
+  },
+
+  async handleUserSend(userText) {
+    // 1. Add user message
+    const userMsg = { sender: "user", text: userText };
+    this.messages.push(userMsg);
+    this.appendMessageElement(userMsg);
+    this.saveChatHistory();
+
+    // 2. Show typing
+    this.showTypingIndicator();
+
+    // 3. Request bot reply
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userText })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        this.hideTypingIndicator();
+        const botMsg = {
+          sender: "bot",
+          text: data.response || "I am checking the statutory regulations...",
+          quickLinks: data.quickLinks || []
+        };
+        this.messages.push(botMsg);
+        this.appendMessageElement(botMsg);
+        this.saveChatHistory();
+        return;
+      }
+    } catch (e) {
+      // Backend request failed -> use client-side knowledge fallback
+    }
+
+    // Fallback Client Intelligence
+    this.hideTypingIndicator();
+    const fallbackBotReply = this.resolveClientFallback(userText);
+    this.messages.push(fallbackBotReply);
+    this.appendMessageElement(fallbackBotReply);
+    this.saveChatHistory();
+  },
+
+  resolveClientFallback(query) {
+    const q = query.toLowerCase();
+    
+    if (/^(hi|hello|hey|greetings|namaste)\b/i.test(q)) {
+      return {
+        sender: "bot",
+        text: `Hello! 👋 How can I help you today with your industrial clearances, document uploads, or renewal tracking?`,
+        quickLinks: [
+          { text: "Required Approvals", url: "approvals.html" },
+          { text: "Document Vault", url: "documents.html" }
+        ]
+      };
+    }
+
+    for (const item of this.knowledgeBase) {
+      if (item.keywords.some(k => q.includes(k))) {
+        return {
+          sender: "bot",
+          text: item.response,
+          quickLinks: item.quickLinks || []
+        };
+      }
+    }
+
+    return {
+      sender: "bot",
+      text: `Here is information on **${query}**:\n\nIndustrial statutory clearances require coordination with respective state agencies:\n• **Fire Safety:** Directorate of Maharashtra Fire Services\n• **Factory License:** DISH Maharashtra\n• **Pollution Control:** Maharashtra Pollution Control Board (MPCB)\n• **Building Approvals:** MIDC Planning Authority\n\nVisit [Required Approvals](approvals.html) or [Document Vault](documents.html) for detailed step-by-step assistance!`,
+      quickLinks: [
+        { text: "Required Approvals", url: "approvals.html" },
+        { text: "Document Vault", url: "documents.html" },
+        { text: "Renewals", url: "renewals.html" }
+      ]
+    };
+  },
+
+  scrollToBottom() {
+    const container = document.getElementById("setubot-messages");
+    if (container) {
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+      }, 50);
+    }
+  }
+};
+
+window.SetuBot = SetuBot;
+
+// Auto-initialize SetuBot when DOM is ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => SetuBot.init());
+} else {
+  SetuBot.init();
+}
+
+

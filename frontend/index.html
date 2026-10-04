@@ -2,163 +2,434 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AnumatiSetu — Business Compliance & Statutory Approval Platform</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Anumati Setu — Industrial Approvals Platform</title>
+  <meta name="description" content="Plan licences, prepare applications, coordinate inspections, manage renewals and discover government support—through one trusted business workspace.">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --navy:#1a2a42;--teal:#0d7a6b;--teal-l:#e6f5f3;
+      --white:#ffffff;--gray-50:#f9fafb;--gray-100:#f3f4f6;
+      --gray-200:#e5e7eb;--gray-400:#9ca3af;--gray-500:#6b7280;
+      --gray-700:#374151;--gray-900:#111827;
+    }
+    body{font-family:'Inter',sans-serif;color:var(--gray-900);background:#fff}
+
+    /* NAV */
+    .nav{position:fixed;top:0;left:0;right:0;z-index:300;background:#fff;border-bottom:1px solid var(--gray-200);height:68px;display:flex;align-items:center}
+    .nav-inner{max-width:1280px;width:100%;margin:0 auto;padding:0 2rem;display:flex;align-items:center;gap:2rem}
+    .brand{display:flex;align-items:center;gap:0.8rem;text-decoration:none;flex-shrink:0}
+    .brand-icon{width:38px;height:38px;border-radius:8px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .brand-text{display:flex;flex-direction:column;line-height:1}
+    .brand-name{font-size:1.1rem;font-weight:800;color:var(--navy);letter-spacing:-0.3px}
+    .brand-sub{font-size:0.6rem;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:1.2px;margin-top:3px}
+    .nav-links{display:flex;align-items:center;gap:0.1rem;flex:1}
+    .nav-link{font-size:0.88rem;font-weight:500;color:var(--gray-700);padding:0.45rem 0.9rem;border-radius:6px;text-decoration:none;white-space:nowrap;transition:background .15s,color .15s}
+    .nav-link:hover{background:var(--gray-100);color:var(--gray-900)}
+    .nav-actions{display:flex;align-items:center;gap:0.75rem;flex-shrink:0;margin-left:auto}
+    .btn-signin{font-size:0.88rem;font-weight:600;color:var(--gray-700);padding:0.5rem 1rem;border-radius:7px;text-decoration:none;transition:background .15s}
+    .btn-signin:hover{background:var(--gray-100)}
+    .btn-register{font-size:0.88rem;font-weight:700;color:#fff;background:var(--teal);padding:0.55rem 1.25rem;border-radius:8px;text-decoration:none;transition:background .15s,transform .1s;white-space:nowrap}
+    .btn-register:hover{background:#0a6357;transform:translateY(-1px)}
+
+    /* HERO */
+    .hero{position:relative;min-height:100vh;display:flex;align-items:center;padding-top:68px;overflow:hidden}
+    .hero-bg{position:absolute;inset:0;background:url('assets/hero_refinery.jpg') center/cover no-repeat}
+    .hero-overlay{position:absolute;inset:0;background:linear-gradient(110deg,rgba(10,22,38,.90) 0%,rgba(12,28,52,.82) 45%,rgba(10,24,46,.55) 100%)}
+    .hero-inner{position:relative;z-index:2;max-width:1280px;width:100%;margin:0 auto;padding:5rem 2rem;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:4rem}
+    .hero-eyebrow{display:flex;align-items:center;gap:0.65rem;margin-bottom:1.4rem}
+    .hero-line{width:30px;height:3px;background:#f59e0b;border-radius:2px}
+    .hero-badge{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1.6px;color:#d1d5db}
+    .hero-title{font-size:3.5rem;font-weight:800;line-height:1.1;color:#fff;letter-spacing:-1px;margin-bottom:1.25rem}
+    .hero-desc{font-size:0.98rem;line-height:1.7;color:#cbd5e1;max-width:480px;margin-bottom:2rem}
+    .hero-btns{display:flex;gap:0.85rem;flex-wrap:wrap;margin-bottom:1.5rem}
+    .btn-hp{display:inline-flex;align-items:center;gap:.45rem;background:var(--teal);color:#fff;font-size:.92rem;font-weight:700;padding:.78rem 1.5rem;border-radius:8px;text-decoration:none;transition:background .15s,transform .1s}
+    .btn-hp:hover{background:#0a6357;transform:translateY(-1px)}
+    .btn-ho{display:inline-flex;align-items:center;gap:.45rem;background:transparent;color:#fff;font-size:.92rem;font-weight:600;padding:.76rem 1.5rem;border-radius:8px;text-decoration:none;border:1.5px solid rgba(255,255,255,.4);transition:background .15s,border-color .15s}
+    .btn-ho:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.65)}
+    .hero-trust{font-size:.78rem;color:#9ca3af;font-weight:500;display:flex;align-items:center;gap:.45rem}
+
+    /* MOCKUP */
+    .mockup-wrap{display:flex;justify-content:center}
+    .mockup{width:480px;background:#f8fafc;border-radius:14px;box-shadow:0 40px 90px rgba(0,0,0,.55),0 8px 28px rgba(0,0,0,.3);overflow:hidden;border:1px solid rgba(255,255,255,.12)}
+    .mockup-bar{background:#e2e8f0;padding:.5rem .75rem;display:flex;align-items:center;gap:.38rem}
+    .dot{width:9px;height:9px;border-radius:50%}
+    .mockup-body{display:flex;height:320px}
+    /* sidebar */
+    .mk-sidebar{width:120px;background:var(--navy);padding:.9rem .7rem;display:flex;flex-direction:column;gap:.12rem;flex-shrink:0}
+    .mk-brand{font-size:.6rem;font-weight:800;color:#fff;letter-spacing:.4px;margin-bottom:1.1rem;padding:0 .25rem;line-height:1.3}
+    .mk-item{font-size:.6rem;font-weight:500;color:#94a3b8;padding:.38rem .5rem;border-radius:5px;cursor:pointer;transition:background .12s}
+    .mk-item.active{background:var(--teal);color:#fff;font-weight:700}
+    /* content */
+    .mk-content{flex:1;padding:1.1rem 1rem;overflow:hidden;background:#fff}
+    .mk-top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem}
+    .mk-greeting{font-size:.85rem;font-weight:800;color:#111827}
+    .mk-profile-badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.52rem;font-weight:700;color:var(--teal);background:#e6f5f3;border-radius:20px;padding:.22rem .55rem}
+    .mk-profile-dot{width:5px;height:5px;border-radius:50%;background:var(--teal)}
+    /* stats */
+    .mk-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.55rem;margin-bottom:.9rem}
+    .mk-stat{background:#f9fafb;border:1px solid #e5e7eb;border-radius:7px;padding:.6rem .5rem}
+    .mk-stat-num{font-size:1.05rem;font-weight:800;color:#111827;display:block;letter-spacing:-.5px}
+    .mk-stat-label{font-size:.44rem;color:#6b7280;display:block;margin-top:.12rem;line-height:1.3}
+    /* progress section */
+    .mk-section{font-size:.62rem;font-weight:700;color:#374151;margin-bottom:.55rem}
+    .mk-progress-list{display:flex;flex-direction:column;gap:.5rem}
+    .mk-prog-row{}
+    .mk-prog-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:.25rem}
+    .mk-prog-name{font-size:.55rem;font-weight:700;color:#374151}
+    .mk-prog-status{font-size:.5rem;color:#6b7280}
+    .mk-prog-bg{height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden}
+    .mk-prog-fill{height:100%;border-radius:3px;background:var(--teal)}
+
+    /* S2: ONE CONNECTED WORKSPACE */
+    .s2{background:#fff;padding:5.5rem 2rem;border-top:1px solid var(--gray-200)}
+    .s2-inner{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem}
+    .s2-left{border:1.5px dashed #bfdbfe;border-radius:8px;padding:2.5rem 2rem}
+    .s2-eyebrow{font-size:.7rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:1rem}
+    .s2-title{font-size:2.5rem;font-weight:800;line-height:1.15;color:var(--gray-900);letter-spacing:-.6px}
+    .s2-right{border:1.5px dashed #bfdbfe;border-radius:8px;padding:2.5rem 2rem;display:flex;flex-direction:column;justify-content:center}
+    .s2-desc{font-size:.9rem;line-height:1.7;color:var(--gray-500);margin-bottom:1.5rem}
+    .s2-checks{display:flex;gap:1.25rem;flex-wrap:wrap}
+    .s2-check{display:flex;align-items:center;gap:.45rem;font-size:.82rem;font-weight:600;color:var(--gray-700)}
+    .s2-ci{width:18px;height:18px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.55rem;flex-shrink:0}
+
+    /* S3: HOW IT WORKS */
+    .s3{background:var(--gray-50);padding:5.5rem 2rem}
+    .s3-inner{max-width:1280px;margin:0 auto}
+    .s3-top{display:grid;grid-template-columns:1fr 1fr;gap:3rem;margin-bottom:3.5rem;align-items:end}
+    .s3-eyebrow{font-size:.7rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:.75rem}
+    .s3-title{font-size:2.4rem;font-weight:800;line-height:1.15;color:var(--gray-900);letter-spacing:-.5px}
+    .s3-rdesc{font-size:.88rem;line-height:1.65;color:var(--gray-500)}
+    .s3-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem}
+    .s3-card{background:#fff;border:1px solid var(--gray-200);border-radius:12px;padding:1.5rem;position:relative}
+    .s3-num{position:absolute;top:1rem;right:1rem;font-size:.72rem;font-weight:800;color:#f59e0b;letter-spacing:.5px}
+    .s3-icon{width:38px;height:38px;border-radius:8px;background:var(--teal-l);display:flex;align-items:center;justify-content:center;margin-bottom:1rem;color:var(--teal)}
+    .s3-ctitle{font-size:.92rem;font-weight:700;color:var(--gray-900);margin-bottom:.5rem}
+    .s3-cdesc{font-size:.8rem;line-height:1.6;color:var(--gray-500)}
+
+    /* S4: PLATFORM CAPABILITIES */
+    .s4{background:#fff;padding:5.5rem 2rem}
+    .s4-inner{max-width:1280px;margin:0 auto}
+    .s4-hdr{margin-bottom:3rem}
+    .s4-eyebrow{font-size:.7rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:.75rem}
+    .s4-title{font-size:2.2rem;font-weight:800;color:var(--gray-900);letter-spacing:-.4px;margin-bottom:.6rem}
+    .s4-sub{font-size:.9rem;color:var(--gray-500);line-height:1.6;max-width:560px}
+    .s4-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem}
+    .s4-card{border:1px solid var(--gray-200);border-radius:12px;padding:1.5rem;background:#fff;transition:box-shadow .2s,transform .2s}
+    .s4-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.07);transform:translateY(-2px)}
+    .s4-icon{width:38px;height:38px;border-radius:8px;background:var(--teal-l);display:flex;align-items:center;justify-content:center;margin-bottom:1rem;color:var(--teal)}
+    .s4-ctitle{font-size:.95rem;font-weight:700;color:var(--teal);margin-bottom:.5rem}
+    .s4-cdesc{font-size:.82rem;line-height:1.6;color:var(--gray-500);margin-bottom:1rem}
+    .s4-learn{font-size:.82rem;font-weight:600;color:var(--teal);text-decoration:none;display:inline-flex;align-items:center;gap:.25rem}
+    .s4-learn:hover{text-decoration:underline}
+
+    /* S5: GOVT SUPPORT */
+    .s5{background:var(--navy);padding:5rem 2rem}
+    .s5-inner{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center}
+    .s5-eyebrow{font-size:.7rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:.75rem}
+    .s5-title{font-size:2.2rem;font-weight:800;color:#fff;letter-spacing:-.5px;margin-bottom:1rem}
+    .s5-desc{font-size:.9rem;line-height:1.7;color:#94a3b8;margin-bottom:1.75rem}
+    .s5-schemes{display:flex;flex-direction:column;gap:.75rem}
+    .s5-scheme{display:flex;align-items:center;gap:.75rem;background:rgba(255,255,255,.06);border-radius:8px;padding:.85rem 1rem;border:1px solid rgba(255,255,255,.1)}
+    .s5-sicon{width:32px;height:32px;border-radius:7px;background:rgba(13,122,107,.4);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
+    .s5-sname{font-size:.84rem;font-weight:700;color:#e2e8f0}
+    .s5-ssub{font-size:.72rem;color:#64748b;margin-top:.1rem}
+    .s5-right{background:rgba(255,255,255,.04);border-radius:12px;padding:2rem;border:1px solid rgba(255,255,255,.1)}
+    .s5-rtitle{font-size:1rem;font-weight:700;color:#fff;margin-bottom:1.25rem}
+    .s5-rdesc{font-size:.85rem;color:#94a3b8;line-height:1.6;margin-bottom:1.5rem}
+    .s5-btns{display:flex;flex-direction:column;gap:.75rem}
+    .btn-ts{display:flex;align-items:center;justify-content:center;gap:.45rem;background:var(--teal);color:#fff;font-size:.9rem;font-weight:700;padding:.78rem 1.5rem;border-radius:8px;text-decoration:none;transition:background .15s}
+    .btn-ts:hover{background:#0a6357}
+    .btn-ow{display:flex;align-items:center;justify-content:center;gap:.45rem;background:transparent;color:#fff;font-size:.9rem;font-weight:600;padding:.76rem 1.5rem;border-radius:8px;text-decoration:none;border:1.5px solid rgba(255,255,255,.3);transition:background .15s}
+    .btn-ow:hover{background:rgba(255,255,255,.08)}
+
+    /* FOOTER */
+    .footer{background:#0f172a;border-top:1px solid rgba(255,255,255,.07);padding:1.75rem 2rem}
+    .footer-inner{max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+    .footer-brand{display:flex;align-items:center;gap:.65rem}
+    .footer-bicon{width:28px;height:28px;border-radius:6px;background:transparent;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .footer-bname{font-size:.88rem;font-weight:700;color:#e2e8f0}
+    .footer-copy{font-size:.78rem;color:#6b7280}
+    .footer-links{display:flex;gap:1.5rem;flex-wrap:wrap}
+    .footer-link{font-size:.8rem;color:#94a3b8;text-decoration:none}
+    .footer-link:hover{color:#fff}
+
+    @media(max-width:960px){
+      .hero-inner,.s2-inner,.s3-top,.s5-inner{grid-template-columns:1fr;gap:2rem}
+      .hero-title{font-size:2.4rem}
+      .mockup{width:100%;max-width:420px;margin:0 auto}
+      .s3-cards{grid-template-columns:1fr 1fr}
+      .s4-grid{grid-template-columns:1fr 1fr}
+      .nav-links{display:none}
+    }
+    @media(max-width:600px){.s3-cards,.s4-grid{grid-template-columns:1fr}}
+  </style>
 </head>
 <body>
 
-  <!-- =========================================================================
-       1. GLOBAL NAVIGATION BAR
-       ========================================================================= -->
-  <header class="navbar" role="banner">
-    <div class="nav-container">
-      <a href="index.html" class="brand-link">
-        <img src="assets/logo.svg" alt="AnumatiSetu" class="brand-logo-img" />
-      </a>
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="brand">
+      <div class="brand-icon"><svg width="22" height="22" viewBox="0 0 100 100" fill="none"><polygon points="50,18 84,35 16,35" fill="white"/><rect x="18" y="38" width="64" height="4" rx="2" fill="white"/><rect x="21" y="44" width="8" height="22" rx="1" fill="white"/><rect x="37" y="44" width="8" height="22" rx="1" fill="white"/><rect x="55" y="44" width="8" height="22" rx="1" fill="white"/><rect x="71" y="44" width="8" height="22" rx="1" fill="white"/><rect x="16" y="68" width="68" height="4" rx="1.5" fill="white"/><rect x="11" y="74" width="78" height="5.5" rx="2.5" fill="white"/></svg></div>
+      <div class="brand-text">
+        <span class="brand-name">Anumati Setu</span>
+        <span class="brand-sub">Industrial Approvals Platform</span>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="dashboard.html"    class="nav-link">Dashboard</a>
+      <a href="profile.html"      class="nav-link">Business Profile</a>
+      <a href="approvals.html"    class="nav-link">Required Approvals</a>
+      <a href="applications.html" class="nav-link">Applications</a>
+      <a href="documents.html"    class="nav-link">Documents</a>
+      <a href="renewals.html"     class="nav-link">Renewals</a>
+    </div>
+    <div class="nav-actions">
+      <a href="login.html"   class="btn-signin">Sign in</a>
+      <a href="register.html" class="btn-register">Register business</a>
+    </div>
+  </div>
+</nav>
 
-      <nav class="nav-menu" id="main-nav-links" aria-label="Main Navigation">
-        <a href="dashboard.html" class="nav-link">Dashboard</a>
-        <a href="profile.html" class="nav-link">Business Profile</a>
-        <a href="approvals.html" class="nav-link">Required Approvals</a>
-        <a href="applications.html" class="nav-link">Applications</a>
-        <a href="documents.html" class="nav-link">Documents</a>
-        <a href="renewals.html" class="nav-link">Renewals</a>
-      </nav>
-
-      <div class="nav-actions">
-        <!-- Notification Dropdown -->
-        <div class="notif-wrapper">
-          <button class="notif-btn" id="nav-notif-btn" aria-label="System Notifications">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-            </svg>
-            <span class="notif-badge" id="nav-notif-badge" style="display: none;">0</span>
-          </button>
-
-          <div class="notif-dropdown" id="nav-notif-dropdown">
-            <div class="notif-header">
-              <span>Notifications &amp; Alerts</span>
-              <button id="notif-mark-all-read">Mark all read</button>
-            </div>
-            <div class="notif-list" id="notif-list-container"></div>
-          </div>
-        </div>
-
-        <a href="profile.html" class="profile-pill dyn-biz-name" title="View Business Profile">
-          Set Up Business Profile
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-overlay"></div>
+  <div class="hero-inner">
+    <div>
+      <div class="hero-eyebrow">
+        <div class="hero-line"></div>
+        <span class="hero-badge">A Clearer Path to Compliance</span>
+      </div>
+      <h1 class="hero-title">Industrial approvals,<br>connected from start<br>to finish.</h1>
+      <p class="hero-desc">Plan licences, prepare applications, coordinate inspections, manage renewals and discover government support—through one trusted business workspace.</p>
+      <div class="hero-btns">
+        <a href="profile.html"   class="btn-hp">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          Create business account
         </a>
-
-        <button class="mobile-toggle" id="mobile-menu-toggle" aria-label="Toggle Menu">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-        </button>
+        <a href="dashboard.html" class="btn-ho">Explore the platform</a>
       </div>
+      <p class="hero-trust">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d7a6b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Built for manufacturers, project teams and compliance professionals.
+      </p>
     </div>
-  </header>
-
-  <!-- =========================================================================
-       2. MAIN CONTENT
-       ========================================================================= -->
-  <main class="main-content">
-    <div class="app-container">
-
-      <!-- Hero Section -->
-      <section style="padding: 3rem 0 3.5rem; text-align: center;">
-        <h1 style="font-size: 2.75rem; font-weight: 800; color: var(--slate-900); letter-spacing: -0.6px; line-height: 1.2; max-width: 840px; margin: 0 auto 1.25rem;">
-          The Centralized Gateway for Business Approvals &amp; Compliance
-        </h1>
-        
-        <p style="font-size: 1.1rem; color: var(--slate-600); max-width: 700px; margin: 0 auto 2.25rem; line-height: 1.6;">
-          AnumatiSetu streamlines statutory regulatory clearances across state and central departments. Identify required approvals, track applications, manage documents, coordinate inspections, and monitor renewals in one unified control panel.
-        </p>
-
-        <div style="display: flex; justify-content: center; gap: 0.85rem; flex-wrap: wrap;">
-          <a href="profile.html" class="btn btn-primary btn-lg">
-            Create Business Profile →
-          </a>
-          <a href="dashboard.html" class="btn btn-secondary btn-lg">
-            Open Dashboard
-          </a>
+    <div class="mockup-wrap">
+      <div class="mockup">
+        <div class="mockup-bar">
+          <div class="dot" style="background:#ef4444"></div>
+          <div class="dot" style="background:#f59e0b"></div>
+          <div class="dot" style="background:#10b981"></div>
         </div>
-      </section>
-
-      <!-- The Core Conceptual Flow -->
-      <section class="card" style="padding: 2rem; margin-bottom: 2rem;">
-        <div style="text-align: center; margin-bottom: 1.75rem;">
-          <h2 style="font-size: 1.35rem; font-weight: 700; color: var(--slate-900);">
-            Integrated Compliance Lifecycle
-          </h2>
-          <p style="font-size: 0.9rem; color: var(--slate-500); margin-top: 0.25rem;">
-            A structured pathway connecting enterprises with statutory authorities
-          </p>
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
-          
-          <div style="background-color: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-md); padding: 1.25rem 1rem; text-align: center;">
-            <div style="font-size: 0.75rem; font-weight: 700; color: var(--brand-700); margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.5px;">Phase 1</div>
-            <div style="font-weight: 700; font-size: 0.95rem; color: var(--slate-900);">Business Profile</div>
-            <div style="font-size: 0.8rem; color: var(--slate-500); margin-top: 0.35rem;">Specify industry type, scale, state &amp; workforce</div>
+        <div class="mockup-body">
+          <!-- Sidebar -->
+          <div class="mk-sidebar">
+            <div class="mk-brand">ANUMATI SETU</div>
+            <div class="mk-item active">Overview</div>
+            <div class="mk-item">Approvals</div>
+            <div class="mk-item">Applications</div>
+            <div class="mk-item">Documents</div>
           </div>
-
-          <div style="background-color: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-md); padding: 1.25rem 1rem; text-align: center;">
-            <div style="font-size: 0.75rem; font-weight: 700; color: var(--brand-700); margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.5px;">Phase 2</div>
-            <div style="font-weight: 700; font-size: 0.95rem; color: var(--slate-900);">Required Approvals</div>
-            <div style="font-size: 0.8rem; color: var(--slate-500); margin-top: 0.35rem;">Automated mapping of mandatory NOCs &amp; permits</div>
+          <!-- Main content -->
+          <div class="mk-content">
+            <div class="mk-top-row">
+              <div class="mk-greeting">Good morning, Aarav</div>
+            </div>
+            <!-- 3 stat cards -->
+            <div class="mk-stats">
+              <div class="mk-stat">
+                <span class="mk-stat-num">12</span>
+                <span class="mk-stat-label">Approvals</span>
+              </div>
+              <div class="mk-stat">
+                <span class="mk-stat-num">05</span>
+                <span class="mk-stat-label">In progress</span>
+              </div>
+              <div class="mk-stat">
+                <span class="mk-stat-num">03</span>
+                <span class="mk-stat-label">Due soon</span>
+              </div>
+            </div>
+            <!-- Application progress -->
+            <div class="mk-section">Application progress</div>
+            <div class="mk-progress-list">
+              <div class="mk-prog-row">
+                <div class="mk-prog-hdr"><span class="mk-prog-name">Factory Licence</span><span class="mk-prog-status">Under review</span></div>
+                <div class="mk-prog-bg"><div class="mk-prog-fill" style="width:72%"></div></div>
+              </div>
+              <div class="mk-prog-row">
+                <div class="mk-prog-hdr"><span class="mk-prog-name">Fire NOC</span><span class="mk-prog-status">Documents verified</span></div>
+                <div class="mk-prog-bg"><div class="mk-prog-fill" style="width:88%"></div></div>
+              </div>
+              <div class="mk-prog-row">
+                <div class="mk-prog-hdr"><span class="mk-prog-name">Consent to Operate</span><span class="mk-prog-status">Submitted</span></div>
+                <div class="mk-prog-bg"><div class="mk-prog-fill" style="width:42%"></div></div>
+              </div>
+            </div>
           </div>
-
-          <div style="background-color: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-md); padding: 1.25rem 1rem; text-align: center;">
-            <div style="font-size: 0.75rem; font-weight: 700; color: var(--brand-700); margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.5px;">Phase 3</div>
-            <div style="font-weight: 700; font-size: 0.95rem; color: var(--slate-900);">Applications &amp; Docs</div>
-            <div style="font-size: 0.8rem; color: var(--slate-500); margin-top: 0.35rem;">Attach required documents &amp; submit to authorities</div>
-          </div>
-
-          <div style="background-color: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-md); padding: 1.25rem 1rem; text-align: center;">
-            <div style="font-size: 0.75rem; font-weight: 700; color: var(--brand-700); margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.5px;">Phase 4</div>
-            <div style="font-weight: 700; font-size: 0.95rem; color: var(--slate-900);">Review &amp; Inspection</div>
-            <div style="font-size: 0.8rem; color: var(--slate-500); margin-top: 0.35rem;">Handle clarifications &amp; scheduled site audits</div>
-          </div>
-
-          <div style="background-color: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-md); padding: 1.25rem 1rem; text-align: center;">
-            <div style="font-size: 0.75rem; font-weight: 700; color: var(--brand-700); margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.5px;">Phase 5</div>
-            <div style="font-weight: 700; font-size: 0.95rem; color: var(--slate-900);">Renewal Tracking</div>
-            <div style="font-size: 0.8rem; color: var(--slate-500); margin-top: 0.35rem;">Automated license expiry monitoring &amp; renewals</div>
-          </div>
-
-        </div>
-      </section>
-
-
-
-    </div>
-  </main>
-
-  <!-- =========================================================================
-       3. SITE FOOTER
-       ========================================================================= -->
-  <footer class="site-footer">
-    <div class="app-container">
-      <div class="footer-inner">
-        <div>
-          <strong>AnumatiSetu</strong> &bull; Business Compliance &amp; Approval Management Platform
-        </div>
-        <div style="display: flex; gap: 1rem;">
-          <a href="dashboard.html">Dashboard</a>
-          <a href="profile.html">Business Profile</a>
-          <a href="approvals.html">Approvals</a>
-          <a href="applications.html">Applications</a>
-          <a href="documents.html">Documents</a>
-          <a href="renewals.html">Renewals</a>
         </div>
       </div>
     </div>
-  </footer>
+  </div>
+</section>
 
-  <script src="script.js?v=3"></script>
+<!-- S2: ONE CONNECTED WORKSPACE -->
+<section class="s2">
+  <div class="s2-inner">
+    <div class="s2-left">
+      <div class="s2-eyebrow">One Connected Workspace</div>
+      <h2 class="s2-title">Move every approval forward with clarity.</h2>
+    </div>
+    <div class="s2-right">
+      <p class="s2-desc">Anumati Setu brings fragmented requirements into a structured journey for your business. Know what applies, organise evidence, monitor department actions and keep every approval current.</p>
+      <div class="s2-checks">
+        <div class="s2-check"><div class="s2-ci">✓</div>State &amp; central approvals</div>
+        <div class="s2-check"><div class="s2-ci">✓</div>Role-based workspace</div>
+        <div class="s2-check"><div class="s2-ci">✓</div>Audit-ready records</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- S3: HOW IT WORKS -->
+<section class="s3" id="how-it-works">
+  <div class="s3-inner">
+    <div class="s3-top">
+      <div>
+        <div class="s3-eyebrow">How It Works</div>
+        <h2 class="s3-title">From business profile to ongoing compliance.</h2>
+      </div>
+      <p class="s3-rdesc">A guided workflow replaces scattered spreadsheets, emails and follow-ups with accountable next steps.</p>
+    </div>
+    <div class="s3-cards">
+      <div class="s3-card">
+        <span class="s3-num">01</span>
+        <div class="s3-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+        <div class="s3-ctitle">Create your profile</div>
+        <p class="s3-cdesc">Add the unit, activity, location and registrations that define your business.</p>
+      </div>
+      <div class="s3-card">
+        <span class="s3-num">02</span>
+        <div class="s3-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/></svg></div>
+        <div class="s3-ctitle">Generate requirements</div>
+        <p class="s3-cdesc">Review a tailored checklist of approvals, documents and responsible departments.</p>
+      </div>
+      <div class="s3-card">
+        <span class="s3-num">03</span>
+        <div class="s3-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+        <div class="s3-ctitle">Manage applications</div>
+        <p class="s3-cdesc">Prepare submissions, respond to observations and coordinate inspections.</p>
+      </div>
+      <div class="s3-card">
+        <span class="s3-num">04</span>
+        <div class="s3-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div>
+        <div class="s3-ctitle">Stay current</div>
+        <p class="s3-cdesc">Monitor expiry dates, renewals, conditions and recurring compliance.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- S4: PLATFORM CAPABILITIES -->
+<section class="s4" id="platform">
+  <div class="s4-inner">
+    <div class="s4-hdr">
+      <div class="s4-eyebrow">Platform Capabilities</div>
+      <h2 class="s4-title">Practical tools for every compliance stage.</h2>
+      <p class="s4-sub">Consistent workflows help your team understand responsibilities and keep records complete.</p>
+    </div>
+    <div class="s4-grid">
+      <div class="s4-card">
+        <div class="s4-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/></svg></div>
+        <div class="s4-ctitle">Personalised approval checklist</div>
+        <p class="s4-cdesc">Identify licences, NOCs and registrations applicable to your unit, location and operations.</p>
+        <a href="approvals.html" class="s4-learn">Learn more →</a>
+      </div>
+      <div class="s4-card">
+        <div class="s4-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></div>
+        <div class="s4-ctitle">Unified application workspace</div>
+        <p class="s4-cdesc">Prepare, submit and track applications across departments from one structured workspace.</p>
+        <a href="applications.html" class="s4-learn">Learn more →</a>
+      </div>
+      <div class="s4-card">
+        <div class="s4-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <div class="s4-ctitle">Inspection readiness</div>
+        <p class="s4-cdesc">Organise inspection requirements, schedules, observations and closure documents.</p>
+        <a href="dashboard.html" class="s4-learn">Learn more →</a>
+      </div>
+      <div class="s4-card">
+        <div class="s4-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+        <div class="s4-ctitle">Verified document vault</div>
+        <p class="s4-cdesc">Maintain current business documents with verification state and reuse across applications.</p>
+        <a href="documents.html" class="s4-learn">Learn more →</a>
+      </div>
+      <div class="s4-card">
+        <div class="s4-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div>
+        <div class="s4-ctitle">Renewal intelligence</div>
+        <p class="s4-cdesc">See statutory expiry dates early and prepare renewal applications without last-minute follow-up.</p>
+        <a href="renewals.html" class="s4-learn">Learn more →</a>
+      </div>
+      <div class="s4-card">
+        <div class="s4-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4"/></svg></div>
+        <div class="s4-ctitle">Government support schemes</div>
+        <p class="s4-cdesc">Discover relevant central and state support programmes with clear eligibility guidance.</p>
+        <a href="approvals.html" class="s4-learn">Learn more →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- S5: GOVT SUPPORT -->
+<section class="s5" id="government-support">
+  <div class="s5-inner">
+    <div>
+      <div class="s5-eyebrow">Government Support</div>
+      <h2 class="s5-title">Access schemes your business qualifies for.</h2>
+      <p class="s5-desc">Central and state governments offer a range of incentives for industrial units—subsidies, PLI schemes, single-window facilitation and export promotion. Anumati Setu maps your profile to eligible programmes.</p>
+      <div class="s5-schemes">
+        <div class="s5-scheme"><div class="s5-sicon">🏭</div><div><div class="s5-sname">Production Linked Incentive (PLI)</div><div class="s5-ssub">Ministry of Commerce &amp; Industry · Central</div></div></div>
+        <div class="s5-scheme"><div class="s5-sicon">💼</div><div><div class="s5-sname">MSME Credit Guarantee Scheme</div><div class="s5-ssub">Ministry of MSME · Central</div></div></div>
+        <div class="s5-scheme"><div class="s5-sicon">⚡</div><div><div class="s5-sname">State Industrial Policy Subsidies</div><div class="s5-ssub">State Govt. · Varies by unit location</div></div></div>
+      </div>
+    </div>
+    <div class="s5-right">
+      <div class="s5-rtitle">Start your compliance journey today</div>
+      <p class="s5-rdesc">Join thousands of Indian manufacturers and MSMEs who use Anumati Setu to manage their statutory approvals from one unified workspace.</p>
+      <div class="s5-btns">
+        <a href="profile.html" class="btn-ts"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>Create business account</a>
+        <a href="dashboard.html" class="btn-ow">Explore the platform</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="footer-bicon"><svg width="18" height="18" viewBox="0 0 100 100" fill="none"><polygon points="50,18 84,35 16,35" fill="white"/><rect x="18" y="38" width="64" height="4" rx="2" fill="white"/><rect x="21" y="44" width="8" height="22" rx="1" fill="white"/><rect x="37" y="44" width="8" height="22" rx="1" fill="white"/><rect x="55" y="44" width="8" height="22" rx="1" fill="white"/><rect x="71" y="44" width="8" height="22" rx="1" fill="white"/><rect x="16" y="68" width="68" height="4" rx="1.5" fill="white"/><rect x="11" y="74" width="78" height="5.5" rx="2.5" fill="white"/></svg></div>
+      <span class="footer-bname">Anumati Setu</span>
+      <span class="footer-copy">&copy; 2026 · Industrial Approvals Platform</span>
+    </div>
+    <div class="footer-links">
+      <a href="dashboard.html"    class="footer-link">Dashboard</a>
+      <a href="profile.html"      class="footer-link">Business Profile</a>
+      <a href="approvals.html"    class="footer-link">Required Approvals</a>
+      <a href="applications.html" class="footer-link">Applications</a>
+      <a href="documents.html"    class="footer-link">Documents</a>
+      <a href="renewals.html"     class="footer-link">Renewals</a>
+    </div>
+  </div>
+</footer>
+
+<script src="script.js?v=4.1"></script>
 </body>
 </html>
+
+

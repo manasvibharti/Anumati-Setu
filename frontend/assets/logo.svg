@@ -1,38 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 50" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="48" viewBox="0 0 240 48" fill="none">
   <defs>
-    <linearGradient id="setuGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f766e" />
-      <stop offset="100%" stop-color="#0e7490" />
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B192C" />
+      <stop offset="100%" stop-color="#1B2F4A" />
     </linearGradient>
-    <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#042f2e" />
-      <stop offset="100%" stop-color="#134e4a" />
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#34D399" />
     </linearGradient>
   </defs>
 
-  <!-- Logo Emblem: Bridge + Gateway + Verification Shield -->
-  <g transform="translate(6, 5)">
-    <!-- Base Rounded Square -->
-    <rect x="0" y="0" width="40" height="40" rx="10" fill="url(#badgeGrad)" />
-    
-    <!-- Stylized Bridge Arch (Setu) -->
-    <path d="M8 29 C12 18, 28 18, 32 29" stroke="#5eead4" stroke-width="2.5" stroke-linecap="round" fill="none" />
-    
-    <!-- Upward Growth / Pillar Gateway -->
-    <path d="M14 29 V21 M20 29 V15 M26 29 V21" stroke="#2dd4bf" stroke-width="1.8" stroke-linecap="round" />
-    
-    <!-- Central Verified Crest Node -->
-    <circle cx="20" cy="11" r="3.5" fill="#f0fdfa" />
-    <circle cx="20" cy="11" r="1.8" fill="#0f766e" />
+  <!-- Emblem Icon: Geometric Shield & Industrial Setu Bridge -->
+  <g transform="translate(4, 4)">
+    <rect x="0" y="0" width="40" height="40" rx="10" fill="url(#shieldGrad)" stroke="#10B981" stroke-width="1.5" />
+    <!-- Arch Bridge -->
+    <path d="M8 29 C13 17, 27 17, 32 29" stroke="#34D399" stroke-width="2.6" stroke-linecap="round" fill="none" />
+    <!-- Vertical Pillars -->
+    <path d="M14 29 V20 M20 29 V14 M26 29 V20" stroke="#6EE7B7" stroke-width="2" stroke-linecap="round" />
+    <!-- Central Node -->
+    <circle cx="20" cy="11" r="3.2" fill="#F0FDF4" />
+    <circle cx="20" cy="11" r="1.6" fill="#00875A" />
   </g>
 
-  <!-- Brand Name Typography -->
-  <text x="56" y="27" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="800" fill="#0f172a" letter-spacing="-0.3">
-    Anumati<tspan fill="#0f766e">Setu</tspan>
+  <!-- Brand Typography (For Dark Backgrounds) -->
+  <text x="54" y="27" font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="21" font-weight="800" fill="#FFFFFF" letter-spacing="-0.4">
+    Anumati<tspan fill="#34D399">Setu</tspan>
   </text>
   
-  <!-- Subtitle -->
-  <text x="57" y="41" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="#64748b" letter-spacing="0.8">
-    APPROVALS &amp; COMPLIANCE
+  <text x="55" y="40" font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8" font-weight="700" fill="#94A3B8" letter-spacing="1.2">
+    INDUSTRIAL CLEARANCES
   </text>
 </svg>
