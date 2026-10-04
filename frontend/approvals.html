@@ -1,646 +1,1482 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Required Approvals — Anumati Setu</title>
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{--navy:#1a2a42;--teal:#0d7a6b;--teal-l:#e6f5f3;--white:#fff;--gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-400:#9ca3af;--gray-500:#6b7280;--gray-700:#374151;--gray-900:#111827;--red:#ef4444;--amber:#f59e0b}
-    body{font-family:'Inter',sans-serif;background:var(--gray-50);color:var(--gray-900);display:flex;height:100vh;overflow:hidden}
-    .sidebar{width:220px;background:var(--navy);display:flex;flex-direction:column;height:100vh;overflow-y:auto;flex-shrink:0}
-    .sb-brand{padding:1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:.75rem}
-    .sb-brand-icon{width:38px;height:38px;border-radius:8px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .sb-brand-name{font-size:.88rem;font-weight:800;color:#fff;line-height:1.2}
-    .sb-brand-sub{font-size:.55rem;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.8px}
-    .sb-nav{padding:.75rem .6rem;flex:1}
-    .sb-item{display:flex;align-items:center;gap:.65rem;padding:.6rem .75rem;border-radius:7px;font-size:.85rem;font-weight:500;color:#94a3b8;text-decoration:none;cursor:pointer;transition:background .15s,color .15s;margin-bottom:.15rem}
-    .sb-item:hover{background:rgba(255,255,255,.07);color:#e2e8f0}
-    .sb-item.active{background:var(--teal);color:#fff}
-    .sb-item svg{width:16px;height:16px;flex-shrink:0;opacity:.85}
-    .sb-support{margin:.75rem .6rem;background:rgba(99,179,237,.12);border:1px solid rgba(99,179,237,.2);border-radius:10px;padding:1rem}
-    .sb-support-q{width:24px;height:24px;border-radius:50%;background:rgba(99,179,237,.25);display:flex;align-items:center;justify-content:center;margin-bottom:.5rem}
-    .sb-support-title{font-size:.8rem;font-weight:700;color:#e2e8f0;margin-bottom:.35rem}
-    .sb-support-desc{font-size:.72rem;color:#94a3b8;line-height:1.5;margin-bottom:.6rem}
-    .sb-support-link{font-size:.75rem;font-weight:600;color:#63b3ed;text-decoration:none}
-    .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-    .topbar{background:#fff;border-bottom:1px solid var(--gray-200);height:60px;display:flex;align-items:center;padding:0 1.75rem;gap:1rem;flex-shrink:0}
-    .tb-search{flex:1;max-width:480px;display:flex;align-items:center;gap:.6rem;background:var(--gray-100);border:1px solid var(--gray-200);border-radius:8px;padding:.45rem .9rem}
-    .tb-search input{background:none;border:none;outline:none;font-size:.86rem;color:var(--gray-700);width:100%;font-family:inherit}
-    .tb-search input::placeholder{color:var(--gray-400)}
-    .tb-right{display:flex;align-items:center;gap:1rem;margin-left:auto}
-    .tb-bell{width:36px;height:36px;border-radius:8px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--gray-200)}
-    .tb-user{display:flex;align-items:center;gap:.65rem;cursor:pointer}
-    .tb-avatar{width:36px;height:36px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;color:#fff;flex-shrink:0}
-    .tb-user-name{font-size:.85rem;font-weight:700;color:var(--gray-900)}
-    .tb-user-company{font-size:.72rem;color:var(--gray-500)}
-    /* CONTENT */
-    .content{flex:1;overflow-y:auto;padding:2rem 1.75rem}
-    .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem}
-    .page-title{font-size:1.65rem;font-weight:800;color:var(--gray-900);letter-spacing:-.3px}
-    .page-subtitle{font-size:.86rem;color:var(--gray-500);margin-top:.25rem}
-    .btn-gen{display:inline-flex;align-items:center;gap:.4rem;background:var(--teal);color:#fff;font-size:.86rem;font-weight:700;padding:.65rem 1.25rem;border-radius:8px;border:none;cursor:pointer;font-family:inherit;transition:background .15s;white-space:nowrap}
-    .btn-gen:hover{background:#0a6357}
-    /* info banner */
-    .info-banner{background:#e6f5f3;border:1px solid #a7f3d0;border-radius:10px;padding:.9rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.25rem}
-    .info-banner-left{display:flex;align-items:flex-start;gap:.65rem}
-    .info-banner-text{font-size:.82rem;color:var(--teal);line-height:1.5;font-weight:500}
-    .info-banner-title{font-weight:700;margin-bottom:.15rem;font-size:.86rem;color:var(--teal)}
-    .info-link{font-size:.82rem;font-weight:700;color:var(--teal);text-decoration:none;white-space:nowrap}
-    .info-link:hover{text-decoration:underline}
-    /* filters */
-    .filters-bar{background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
-    .filter-group{display:flex;flex-direction:column;gap:.25rem;min-width:160px;flex:1}
-    .filter-label{font-size:.7rem;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px}
-    .filter-select{appearance:none;border:1px solid var(--gray-200);border-radius:7px;padding:.45rem .75rem;font-size:.84rem;font-family:inherit;color:var(--gray-900);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right .65rem center;padding-right:2rem;cursor:pointer;outline:none;transition:border-color .15s}
-    .filter-select:focus{border-color:var(--teal)}
-    .filter-reset{font-size:.82rem;font-weight:600;color:var(--gray-500);cursor:pointer;margin-left:auto;white-space:nowrap}
-    .filter-reset:hover{color:var(--teal)}
-    /* count row */
-    .count-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
-    .count-title{font-size:1rem;font-weight:800;color:var(--gray-900)}
-    .count-pills{display:flex;gap:.5rem}
-    .count-pill{font-size:.75rem;font-weight:700;padding:.2rem .65rem;border-radius:20px}
-    .pill-req{background:#fef2f2;color:var(--red)}
-    .pill-prog{background:var(--teal-l);color:var(--teal)}
-    .pill-obt{background:#ecfdf5;color:#16a34a}
-    /* approval cards */
-    .approval-card{background:#fff;border:1px solid var(--gray-200);border-radius:12px;margin-bottom:.75rem;overflow:hidden;transition:box-shadow .15s}
-    .approval-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.06)}
-    .approval-card-header{
-      display:flex;align-items:center;gap:1rem;
-      padding:1rem 1.25rem;cursor:pointer;
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
     }
-    .approval-icon{width:38px;height:38px;border-radius:8px;background:var(--teal-l);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--teal)}
-    .approval-info{flex:1}
-    .approval-name{font-size:.92rem;font-weight:700;color:var(--gray-900);margin-bottom:.15rem}
-    .approval-dept{font-size:.76rem;color:var(--gray-500)}
-    .approval-meta{display:flex;gap:2rem;flex-shrink:0}
-    .approval-meta-item{text-align:right}
-    .approval-meta-label{font-size:.65rem;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:.2rem}
-    .approval-meta-val{font-size:.82rem;font-weight:600;color:var(--gray-700)}
-    .approval-status-badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;font-weight:700;padding:.22rem .6rem;border-radius:20px;white-space:nowrap}
-    .badge-required{background:#fef2f2;color:var(--red)}
-    .badge-inprog{background:var(--teal-l);color:var(--teal)}
-    .badge-obtained{background:#ecfdf5;color:#16a34a}
-    .approval-chevron{color:var(--gray-400);transition:transform .2s;flex-shrink:0}
-    .approval-chevron.open{transform:rotate(180deg)}
+
+    :root {
+      --navy: #1a2a42;
+      --teal: #0d7a6b;
+      --teal-l: #e6f5f3;
+      --white: #fff;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-700: #374151;
+      --gray-900: #111827;
+      --red: #ef4444;
+      --amber: #f59e0b
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-900);
+      display: flex;
+      height: 100vh;
+      overflow: hidden
+    }
+
+    .sidebar {
+      width: 220px;
+      background: var(--navy);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow-y: auto;
+      flex-shrink: 0
+    }
+
+    .sb-brand {
+      padding: 1.25rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, .08);
+      display: flex;
+      align-items: center;
+      gap: .75rem
+    }
+
+    .sb-brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0
+    }
+
+    .sb-brand-name {
+      font-size: .88rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.2
+    }
+
+    .sb-brand-sub {
+      font-size: .55rem;
+      font-weight: 500;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: .8px
+    }
+
+    .sb-nav {
+      padding: .75rem .6rem;
+      flex: 1
+    }
+
+    .sb-item {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      padding: .6rem .75rem;
+      border-radius: 7px;
+      font-size: .85rem;
+      font-weight: 500;
+      color: #94a3b8;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+      margin-bottom: .15rem
+    }
+
+    .sb-item:hover {
+      background: rgba(255, 255, 255, .07);
+      color: #e2e8f0
+    }
+
+    .sb-item.active {
+      background: var(--teal);
+      color: #fff
+    }
+
+    .sb-item svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      opacity: .85
+    }
+
+    .sb-support {
+      margin: .75rem .6rem;
+      background: rgba(99, 179, 237, .12);
+      border: 1px solid rgba(99, 179, 237, .2);
+      border-radius: 10px;
+      padding: 1rem
+    }
+
+    .sb-support-q {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(99, 179, 237, .25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: .5rem
+    }
+
+    .sb-support-title {
+      font-size: .8rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: .35rem
+    }
+
+    .sb-support-desc {
+      font-size: .72rem;
+      color: #94a3b8;
+      line-height: 1.5;
+      margin-bottom: .6rem
+    }
+
+    .sb-support-link {
+      font-size: .75rem;
+      font-weight: 600;
+      color: #63b3ed;
+      text-decoration: none
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden
+    }
+
+    .topbar {
+      background: #fff;
+      border-bottom: 1px solid var(--gray-200);
+      height: 60px;
+      display: flex;
+      align-items: center;
+      padding: 0 1.75rem;
+      gap: 1rem;
+      flex-shrink: 0
+    }
+
+    .tb-search {
+      flex: 1;
+      max-width: 480px;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      background: var(--gray-100);
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      padding: .45rem .9rem
+    }
+
+    .tb-search input {
+      background: none;
+      border: none;
+      outline: none;
+      font-size: .86rem;
+      color: var(--gray-700);
+      width: 100%;
+      font-family: inherit
+    }
+
+    .tb-search input::placeholder {
+      color: var(--gray-400)
+    }
+
+    .tb-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-left: auto
+    }
+
+    .tb-bell {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--gray-100);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: 1px solid var(--gray-200)
+    }
+
+    .tb-user {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      cursor: pointer
+    }
+
+    .tb-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--teal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0
+    }
+
+    .tb-user-name {
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--gray-900)
+    }
+
+    .tb-user-company {
+      font-size: .72rem;
+      color: var(--gray-500)
+    }
+
+    /* CONTENT */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem 1.75rem
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 1.5rem
+    }
+
+    .page-title {
+      font-size: 1.65rem;
+      font-weight: 800;
+      color: var(--gray-900);
+      letter-spacing: -.3px
+    }
+
+    .page-subtitle {
+      font-size: .86rem;
+      color: var(--gray-500);
+      margin-top: .25rem
+    }
+
+    .btn-gen {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      background: var(--teal);
+      color: #fff;
+      font-size: .86rem;
+      font-weight: 700;
+      padding: .65rem 1.25rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background .15s;
+      white-space: nowrap
+    }
+
+    .btn-gen:hover {
+      background: #0a6357
+    }
+
+    /* info banner */
+    .info-banner {
+      background: #e6f5f3;
+      border: 1px solid #a7f3d0;
+      border-radius: 10px;
+      padding: .9rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.25rem
+    }
+
+    .info-banner-left {
+      display: flex;
+      align-items: flex-start;
+      gap: .65rem
+    }
+
+    .info-banner-text {
+      font-size: .82rem;
+      color: var(--teal);
+      line-height: 1.5;
+      font-weight: 500
+    }
+
+    .info-banner-title {
+      font-weight: 700;
+      margin-bottom: .15rem;
+      font-size: .86rem;
+      color: var(--teal)
+    }
+
+    .info-link {
+      font-size: .82rem;
+      font-weight: 700;
+      color: var(--teal);
+      text-decoration: none;
+      white-space: nowrap
+    }
+
+    .info-link:hover {
+      text-decoration: underline
+    }
+
+    /* filters */
+    .filters-bar {
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      flex-wrap: wrap
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: .25rem;
+      min-width: 160px;
+      flex: 1
+    }
+
+    .filter-label {
+      font-size: .7rem;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .filter-select {
+      appearance: none;
+      border: 1px solid var(--gray-200);
+      border-radius: 7px;
+      padding: .45rem .75rem;
+      font-size: .84rem;
+      font-family: inherit;
+      color: var(--gray-900);
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right .65rem center;
+      padding-right: 2rem;
+      cursor: pointer;
+      outline: none;
+      transition: border-color .15s
+    }
+
+    .filter-select:focus {
+      border-color: var(--teal)
+    }
+
+    .filter-reset {
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--gray-500);
+      cursor: pointer;
+      margin-left: auto;
+      white-space: nowrap
+    }
+
+    .filter-reset:hover {
+      color: var(--teal)
+    }
+
+    /* count row */
+    .count-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem
+    }
+
+    .count-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--gray-900)
+    }
+
+    .count-pills {
+      display: flex;
+      gap: .5rem
+    }
+
+    .count-pill {
+      font-size: .75rem;
+      font-weight: 700;
+      padding: .2rem .65rem;
+      border-radius: 20px
+    }
+
+    .pill-req {
+      background: #fef2f2;
+      color: var(--red)
+    }
+
+    .pill-prog {
+      background: var(--teal-l);
+      color: var(--teal)
+    }
+
+    .pill-obt {
+      background: #ecfdf5;
+      color: #16a34a
+    }
+
+    /* approval cards */
+    .approval-card {
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      margin-bottom: .75rem;
+      overflow: hidden;
+      transition: box-shadow .15s
+    }
+
+    .approval-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .06)
+    }
+
+    .approval-card-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+    }
+
+    .approval-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: var(--teal-l);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--teal)
+    }
+
+    .approval-info {
+      flex: 1
+    }
+
+    .approval-name {
+      font-size: .92rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: .15rem
+    }
+
+    .approval-dept {
+      font-size: .76rem;
+      color: var(--gray-500)
+    }
+
+    .approval-meta {
+      display: flex;
+      gap: 2rem;
+      flex-shrink: 0
+    }
+
+    .approval-meta-item {
+      text-align: right
+    }
+
+    .approval-meta-label {
+      font-size: .65rem;
+      font-weight: 700;
+      color: var(--gray-400);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      display: block;
+      margin-bottom: .2rem
+    }
+
+    .approval-meta-val {
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--gray-700)
+    }
+
+    .approval-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      font-size: .72rem;
+      font-weight: 700;
+      padding: .22rem .6rem;
+      border-radius: 20px;
+      white-space: nowrap
+    }
+
+    .badge-required {
+      background: #fef2f2;
+      color: var(--red)
+    }
+
+    .badge-inprog {
+      background: var(--teal-l);
+      color: var(--teal)
+    }
+
+    .badge-obtained {
+      background: #ecfdf5;
+      color: #16a34a
+    }
+
+    .approval-chevron {
+      color: var(--gray-400);
+      transition: transform .2s;
+      flex-shrink: 0
+    }
+
+    .approval-chevron.open {
+      transform: rotate(180deg)
+    }
+
     /* expanded body */
-    .approval-body{border-top:1px solid var(--gray-100);padding:1.25rem;display:none;grid-template-columns:1fr 1fr;gap:2rem}
-    .approval-body.open{display:grid}
-    .ab-section-title{font-size:.8rem;font-weight:700;color:var(--gray-700);margin-bottom:.75rem}
-    .doc-list{display:flex;flex-direction:column;gap:.5rem}
-    .doc-item{display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--gray-700)}
-    .doc-check{width:16px;height:16px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .process-list{display:flex;flex-direction:column;gap:.4rem}
-    .process-item{display:flex;align-items:center;justify-content:space-between;font-size:.82rem;color:var(--gray-700)}
-    .process-days{font-size:.76rem;color:var(--gray-400);white-space:nowrap}
-    .info-note{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.75rem .9rem;display:flex;align-items:flex-start;gap:.5rem;grid-column:1/-1;margin-top:.5rem}
-    .info-note svg{color:var(--amber);flex-shrink:0;margin-top:1px}
-    .info-note-text{font-size:.78rem;color:#78350f;line-height:1.5}
-    .btn-start{background:var(--teal);color:#fff;font-size:.86rem;font-weight:700;border:none;border-radius:8px;padding:.65rem 1.25rem;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .15s}
-    .btn-start:hover{background:#0a6357}
-    .start-row{grid-column:1/-1;display:flex;justify-content:flex-end}
+    .approval-body {
+      border-top: 1px solid var(--gray-100);
+      padding: 1.25rem;
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem
+    }
+
+    .approval-body.open {
+      display: grid
+    }
+
+    .ab-section-title {
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--gray-700);
+      margin-bottom: .75rem
+    }
+
+    .doc-list {
+      display: flex;
+      flex-direction: column;
+      gap: .5rem
+    }
+
+    .doc-item {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .82rem;
+      color: var(--gray-700)
+    }
+
+    .doc-check {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--teal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0
+    }
+
+    .process-list {
+      display: flex;
+      flex-direction: column;
+      gap: .4rem
+    }
+
+    .process-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: .82rem;
+      color: var(--gray-700)
+    }
+
+    .process-days {
+      font-size: .76rem;
+      color: var(--gray-400);
+      white-space: nowrap
+    }
+
+    .info-note {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: .75rem .9rem;
+      display: flex;
+      align-items: flex-start;
+      gap: .5rem;
+      grid-column: 1/-1;
+      margin-top: .5rem
+    }
+
+    .info-note svg {
+      color: var(--amber);
+      flex-shrink: 0;
+      margin-top: 1px
+    }
+
+    .info-note-text {
+      font-size: .78rem;
+      color: #78350f;
+      line-height: 1.5
+    }
+
+    .btn-start {
+      background: var(--teal);
+      color: #fff;
+      font-size: .86rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      padding: .65rem 1.25rem;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      transition: background .15s
+    }
+
+    .btn-start:hover {
+      background: #0a6357
+    }
+
+    .start-row {
+      grid-column: 1/-1;
+      display: flex;
+      justify-content: flex-end
+    }
   </style>
 </head>
+
 <body>
-<aside class="sidebar">
-  <a href="index.html" class="sb-brand" onclick="window.location.href='index.html'" style="cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:.75rem">
-    <div class="sb-brand-icon"><svg width="22" height="22" viewBox="0 0 100 100" fill="none"><polygon points="50,18 84,35 16,35" fill="white"/><rect x="18" y="38" width="64" height="4" rx="2" fill="white"/><rect x="21" y="44" width="8" height="22" rx="1" fill="white"/><rect x="37" y="44" width="8" height="22" rx="1" fill="white"/><rect x="55" y="44" width="8" height="22" rx="1" fill="white"/><rect x="71" y="44" width="8" height="22" rx="1" fill="white"/><rect x="16" y="68" width="68" height="4" rx="1.5" fill="white"/><rect x="11" y="74" width="78" height="5.5" rx="2.5" fill="white"/></svg></div>
-    <div><div class="sb-brand-name">Anumati Setu</div><div class="sb-brand-sub">Industrial Approvals Platform</div></div>
-  </div>
-  <nav class="sb-nav">
-    <a href="dashboard.html" class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
-    <a href="profile.html" class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Business Profile</a>
-    <a href="approvals.html" class="sb-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/></svg>Required Approvals</a>
-    <a href="applications.html" class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Applications</a>
-    <a href="documents.html" class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Documents</a>
-    <a href="renewals.html" class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Renewals</a>
-  </nav>
-  <div class="sb-support">
-    <div class="sb-support-q"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#63b3ed" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-    <div class="sb-support-title">Need government support?</div>
-    <p class="sb-support-desc">Connect with the facilitation desk for application guidance.</p>
-    <a href="#" class="sb-support-link">Contact support →</a>
-  </div>
-</aside>
-<div class="main">
-  <div class="topbar">
-    <div class="tb-right">
-      <div class="tb-bell"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
-      <div class="tb-user" onclick="openProfileMenuModal()" title="Business Profile & Account Hub" style="cursor:pointer">
-        <div class="tb-avatar">AS</div>
-        <div><div class="tb-user-name">Aarav Sharma</div><div class="tb-user-company">Shakti Precision Pvt. Ltd.</div></div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  <aside class="sidebar">
+    <a href="index.html" class="sb-brand" onclick="window.location.href='index.html'"
+      style="cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:.75rem">
+      <div class="sb-brand-icon"><svg width="22" height="22" viewBox="0 0 100 100" fill="none">
+          <polygon points="50,18 84,35 16,35" fill="white" />
+          <rect x="18" y="38" width="64" height="4" rx="2" fill="white" />
+          <rect x="21" y="44" width="8" height="22" rx="1" fill="white" />
+          <rect x="37" y="44" width="8" height="22" rx="1" fill="white" />
+          <rect x="55" y="44" width="8" height="22" rx="1" fill="white" />
+          <rect x="71" y="44" width="8" height="22" rx="1" fill="white" />
+          <rect x="16" y="68" width="68" height="4" rx="1.5" fill="white" />
+          <rect x="11" y="74" width="78" height="5.5" rx="2.5" fill="white" />
+        </svg></div>
+      <div>
+        <div class="sb-brand-name">Anumati Setu</div>
+        <div class="sb-brand-sub">Industrial Approvals Platform</div>
+      </div>
+      </div>
+      <nav class="sb-nav">
+        <a href="dashboard.html" class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+          </svg>Dashboard</a>
+        <a href="profile.html" class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>Business Profile</a>
+        <a href="approvals.html" class="sb-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6" />
+            <line x1="8" y1="12" x2="21" y2="12" />
+            <line x1="8" y1="18" x2="21" y2="18" />
+            <polyline points="3 6 4 7 6 5" />
+            <polyline points="3 12 4 13 6 11" />
+            <polyline points="3 18 4 19 6 17" />
+          </svg>Required Approvals</a>
+        <a href="applications.html" class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>Applications</a>
+        <a href="documents.html" class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg>Documents</a>
+        <a href="renewals.html" class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10" />
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+          </svg>Renewals</a>
+      </nav>
+      <div class="sb-support">
+        <div class="sb-support-q"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#63b3ed"
+            stroke-width="2.5" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg></div>
+        <div class="sb-support-title">Need government support?</div>
+        <p class="sb-support-desc">Connect with the facilitation desk for application guidance.</p>
+        <a href="#" class="sb-support-link">Contact support →</a>
+      </div>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <div class="tb-right">
+        <div class="tb-bell"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg></div>
+        <div class="tb-user" onclick="openProfileMenuModal()" title="Business Profile & Account Hub"
+          style="cursor:pointer">
+          <div class="tb-avatar">AS</div>
+          <div>
+            <div class="tb-user-name">Aarav Sharma</div>
+            <div class="tb-user-company">Shakti Precision Pvt. Ltd.</div>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Required Approvals</h1>
+          <p class="page-subtitle">Review the approvals identified from your business profile and operational details.
+          </p>
+        </div>
+        <button type="button" class="btn-gen" onclick="openNewApplicationModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Start New Application
+        </button>
+      </div>
+      <div class="info-banner">
+        <div class="info-banner-left">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d7a6b" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+          <div>
+            <div class="info-banner-title">Mandatory Regulatory Clearances for Active Unit</div>
+            <div class="info-banner-text">Based on precision manufacturing, Chakan MIDC location, 146 employees and
+              installed power details. Last reviewed 10 Sep 2026.</div>
+          </div>
+        </div>
+        <a href="profile.html" class="info-link">Review profile inputs</a>
+      </div>
+      <div class="filters-bar">
+        <div class="filter-group">
+          <span class="filter-label">Approval status</span>
+          <select class="filter-select">
+            <option>All statuses</option>
+            <option>Required</option>
+            <option>In progress</option>
+            <option>Obtained</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Department</span>
+          <select class="filter-select">
+            <option>All departments</option>
+            <option>Fire &amp; Emergency</option>
+            <option>Industrial Safety</option>
+            <option>Pollution Control</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Approval type</span>
+          <select class="filter-select">
+            <option>All types</option>
+            <option>Licence</option>
+            <option>NOC</option>
+            <option>Registration</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Business unit</span>
+          <select class="filter-select">
+            <option>Chakan Unit</option>
+          </select>
+        </div>
+        <span class="filter-reset">Reset filters</span>
+      </div>
+      <div class="count-row">
+        <span class="count-title">12 approvals identified</span>
+        <div class="count-pills">
+          <span class="count-pill pill-req">● 5 required</span>
+          <span class="count-pill pill-prog">● 4 in progress</span>
+          <span class="count-pill pill-obt">● 3 obtained</span>
+        </div>
+      </div>
+
+      <!-- FIRE NOC (expanded) -->
+      <div class="approval-card">
+        <div class="approval-card-header" onclick="toggleCard(this)">
+          <div class="approval-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 11l3 3L22 4" />
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg></div>
+          <div class="approval-info">
+            <div class="approval-name">Fire No Objection Certificate (Fire NOC)</div>
+            <div class="approval-dept">Maharashtra Fire &amp; Emergency Services · MIDC Fire Station</div>
+          </div>
+          <div class="approval-meta">
+            <div class="approval-meta-item"><span class="approval-meta-label">Category</span><span
+                class="approval-meta-val">Safety &amp; NBC</span></div>
+            <div class="approval-meta-item"><span class="approval-meta-label">Indicative Timeline</span><span
+                class="approval-meta-val">15–30 days</span></div>
+          </div>
+          <span class="approval-status-badge badge-required">● Required</span>
+          <svg class="approval-chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+        <div class="approval-body open">
+          <div>
+            <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0d7a6b;">
+              <span>📁</span> Mandatory Documents to Upload:
+            </div>
+            <div class="doc-list">
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>Site &amp; Building Layout Plan</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">AutoCAD / PDF (1:100 scale showing fire exits, hydrants
+                    &amp; setbacks)</div>
+                </div>
+              </div>
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>Fire Safety System &amp; Hydrant Hydraulic Calculation</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">Certified technical report by Licensed Fire Protection
+                    Agency</div>
+                </div>
+              </div>
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>Structural Stability Certificate &amp; NBC Compliance</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">Issued by Government Chartered Structural Engineer
+                  </div>
+                </div>
+              </div>
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>Authorised Signatory Board Resolution &amp; Land Allotment</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">MIDC Possession Certificate &amp; Identity Proof of
+                    Signatory</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0f172a;">
+              <span>🏛️</span> Where to Submit / Given Actually:
+            </div>
+            <div
+              style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem; font-size:0.82rem; display:flex; flex-direction:column; gap:0.6rem;">
+              <div>
+                <span
+                  style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Official
+                  Government Portal</span>
+                <a href="https://mahafireservice.gov.in" target="_blank"
+                  style="color:#0d7a6b; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:0.3rem;">
+                  🌐 Maharashtra Fire Portal (mahafireservice.gov.in) / MAITRI Single Window ↗
+                </a>
+              </div>
+              <div>
+                <span
+                  style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Receiving
+                  Department &amp; Physical Office</span>
+                <div style="font-weight:600; color:#1e293b;">Office of the Chief Fire Officer (CFO), MIDC Fire Station,
+                  Phase-II Chakan Industrial Area, Pune 410501</div>
+              </div>
+              <div>
+                <span
+                  style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Submission
+                  &amp; Inspection Procedure</span>
+                <div style="color:#475569; line-height:1.4;">1. Submit online e-form with attached drawings &rarr; 2.
+                  Deposit 1 hardcopy blueprint set at Chakan Fire Station &rarr; 3. Sub-Divisional Fire Officer conducts
+                  physical site inspection prior to final grant.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="start-row"
+            style="grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f1f5f9; padding-top:0.85rem; margin-top:0.25rem;">
+            <a href="https://maitri.mahaonline.gov.in" target="_blank"
+              style="font-size:0.8rem; font-weight:700; color:#0d7a6b; text-decoration:none; display:inline-flex; align-items:center; gap:0.35rem;">
+              <span>🌐</span> Go to Maharashtra Single Window Portal (MAITRI) ↗
+            </a>
+            <button class="btn-start" onclick="handleStartApplication('REQ_FIRE_NOC')">Start application</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Factory Licence -->
+      <div class="approval-card">
+        <div class="approval-card-header" onclick="toggleCard(this)">
+          <div class="approval-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M3 9h18M9 21V9" />
+            </svg></div>
+          <div class="approval-info">
+            <div class="approval-name">Factory Operating Licence (Form 1 &amp; Form 2)</div>
+            <div class="approval-dept">Directorate of Industrial Safety &amp; Health (DISH), Maharashtra</div>
+          </div>
+          <div class="approval-meta">
+            <div class="approval-meta-item"><span class="approval-meta-label">Category</span><span
+                class="approval-meta-val">Labour &amp; Safety</span></div>
+            <div class="approval-meta-item"><span class="approval-meta-label">Indicative Timeline</span><span
+                class="approval-meta-val">30–45 days</span></div>
+          </div>
+          <span class="approval-status-badge badge-inprog">● In progress</span>
+          <svg class="approval-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+        <div class="approval-body">
+          <div>
+            <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0d7a6b;">
+              <span>📁</span> Mandatory Documents to Upload:
+            </div>
+            <div class="doc-list">
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>Form 1 Factory Layout &amp; Machinery Spacing Plan</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">Dimensioned drawing showing aisles, ventilation,
+                    emergency doors &amp; machine layout</div>
+                </div>
+              </div>
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>Stability Certificate by Recognized Competent Person (Form 1-A)</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">Chartered engineer certificate confirming plant
+                    load-bearing capacity</div>
+                </div>
+              </div>
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>Sanctioned Power Load Schedule &amp; Manufacturing Flow Chart</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">MSEDCL power sanction letter (450 kW) &amp; list of
+                    installed electric motors</div>
+                </div>
+              </div>
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>Occupier &amp; Factory Manager Appointment Declarations</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">Form 2 declaration with residential address proof &amp;
+                    emergency contact details</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0f172a;">
+              <span>🏛️</span> Where to Submit / Given Actually:
+            </div>
+            <div
+              style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem; font-size:0.82rem; display:flex; flex-direction:column; gap:0.6rem;">
+              <div>
+                <span
+                  style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Official
+                  Government Portal</span>
+                <a href="https://dish.maharashtra.gov.in" target="_blank"
+                  style="color:#0d7a6b; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:0.3rem;">
+                  🌐 DISH Maharashtra Portal (dish.maharashtra.gov.in) / LMS ↗
+                </a>
+              </div>
+              <div>
+                <span
+                  style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Receiving
+                  Department &amp; Physical Office</span>
+                <div style="font-weight:600; color:#1e293b;">Office of the Joint Director of Industrial Safety &amp;
+                  Health, Pune Division, Commercial Complex, Wakdewadi, Pune 411003</div>
+              </div>
+              <div>
+                <span
+                  style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Submission
+                  &amp; Inspection Procedure</span>
+                <div style="color:#475569; line-height:1.4;">Submit Form 1 online &rarr; Scrutiny by Deputy Director
+                  &rarr; Physical inspection of plant by DISH Inspector &rarr; Grant of factory licence under Section 6
+                  of Factories Act 1948.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="start-row"
+            style="grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f1f5f9; padding-top:0.85rem; margin-top:0.25rem;">
+            <a href="https://dish.maharashtra.gov.in" target="_blank"
+              style="font-size:0.8rem; font-weight:700; color:#0d7a6b; text-decoration:none; display:inline-flex; align-items:center; gap:0.35rem;">
+              <span>🌐</span> Open DISH Official Portal ↗
+            </a>
+            <button class="btn-start" onclick="handleStartApplication('REQ_FACTORIES_LICENSE')">Start
+              application</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MPCB CTE -->
+      <div class="approval-card">
+        <div class="approval-card-header" onclick="toggleCard(this)">
+          <div class="approval-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg></div>
+          <div class="approval-info">
+            <div class="approval-name">Consent to Establish (CTE / CTO Orange Category)</div>
+            <div class="approval-dept">Maharashtra Pollution Control Board (MPCB)</div>
+          </div>
+          <div class="approval-meta">
+            <div class="approval-meta-item"><span class="approval-meta-label">Category</span><span
+                class="approval-meta-val">Environmental</span></div>
+            <div class="approval-meta-item"><span class="approval-meta-label">Indicative Timeline</span><span
+                class="approval-meta-val">60–90 days</span></div>
+          </div>
+          <span class="approval-status-badge badge-inprog">● In progress</span>
+          <svg class="approval-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+        <div class="approval-body">
+          <div>
+            <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0d7a6b;">
+              <span>📁</span> Mandatory Documents to Upload:
+            </div>
+            <div class="doc-list">
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>Comprehensive Project Report (CPR) with Capital Investment</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">Certified CA certificate verifying gross fixed capital
+                    asset value (Plant &amp; Machinery)</div>
+                </div>
+              </div>
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>Effluent &amp; Air Emission Management Plan (ETP/APC Blueprint)</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">Design parameters for industrial wastewater, zero
+                    liquid discharge &amp; chimney stacks</div>
+                </div>
+              </div>
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>MIDC Plot Possession Order &amp; Water Supply Sanction Letter</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">MIDC water allotment agreement &amp; site location
+                    coordinate index</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0f172a;">
+              <span>🏛️</span> Where to Submit / Given Actually:
+            </div>
+            <div
+              style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem; font-size:0.82rem; display:flex; flex-direction:column; gap:0.6rem;">
+              <div>
+                <span
+                  style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Official
+                  Government Portal</span>
+                <a href="https://ecmpcb.in" target="_blank"
+                  style="color:#0d7a6b; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:0.3rem;">
+                  🌐 MPCB Online Consent Management &amp; Monitoring System (ecmpcb.in) ↗
+                </a>
+              </div>
+              <div>
+                <span
+                  style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Receiving
+                  Department &amp; Regional Office</span>
+                <div style="font-weight:600; color:#1e293b;">Maharashtra Pollution Control Board, Regional Office Pune,
+                  Jog Centre, 3rd Floor, Old Mumbai-Pune Road, Wakdewadi, Pune 411003</div>
+              </div>
+              <div>
+                <span
+                  style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Submission
+                  &amp; Inspection Procedure</span>
+                <div style="color:#475569; line-height:1.4;">100% digital paperless e-filing via Digital Signature
+                  Certificate (DSC) &rarr; Field Officer site verification &rarr; Consent Committee review &rarr; Order
+                  issuance.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="start-row"
+            style="grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f1f5f9; padding-top:0.85rem; margin-top:0.25rem;">
+            <a href="https://ecmpcb.in" target="_blank"
+              style="font-size:0.8rem; font-weight:700; color:#0d7a6b; text-decoration:none; display:inline-flex; align-items:center; gap:0.35rem;">
+              <span>🌐</span> Open MPCB Portal (ecmpcb.in) ↗
+            </a>
+            <button class="btn-start" onclick="handleStartApplication('REQ_SPCB_CTE_CTO')">Start application</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Building Plan Approval -->
+      <div class="approval-card">
+        <div class="approval-card-header" onclick="toggleCard(this)">
+          <div class="approval-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            </svg></div>
+          <div class="approval-info">
+            <div class="approval-name">Industrial Building Plan Sanction</div>
+            <div class="approval-dept">Maharashtra Industrial Development Corporation (MIDC) Town Planning</div>
+          </div>
+          <div class="approval-meta">
+            <div class="approval-meta-item"><span class="approval-meta-label">Category</span><span
+                class="approval-meta-val">Land &amp; Building</span></div>
+            <div class="approval-meta-item"><span class="approval-meta-label">Indicative Timeline</span><span
+                class="approval-meta-val">30–45 days</span></div>
+          </div>
+          <span class="approval-status-badge badge-required">● Required</span>
+          <svg class="approval-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+        <div class="approval-body">
+          <div>
+            <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0d7a6b;">
+              <span>📁</span> Mandatory Documents to Upload:
+            </div>
+            <div class="doc-list">
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>Architectural CAD Drawings (AutoDCR DXF/DWG format)</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">Floor elevations, setbacks, FSI / FAR calculations
+                    &amp; site access plans</div>
+                </div>
+              </div>
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>Structural Stability &amp; Geo-Technical Soil Investigation Report</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">Signed by Licensed Structural Engineer with seismic
+                    zone IV compliance</div>
+                </div>
+              </div>
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>Registered MIDC Lease Deed &amp; Demarcation Certificate</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">Plot possession deed from MIDC Regional Officer Pune
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0f172a;">
+              <span>🏛️</span> Where to Submit / Given Actually:
+            </div>
+            <div
+              style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem; font-size:0.82rem; display:flex; flex-direction:column; gap:0.6rem;">
+              <div>
+                <span
+                  style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Official
+                  Government Portal</span>
+                <a href="https://midcindia.org" target="_blank"
+                  style="color:#0d7a6b; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:0.3rem;">
+                  🌐 MIDC Automated Building Plan Approval System (midcindia.org) ↗
+                </a>
+              </div>
+              <div>
+                <span
+                  style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Receiving
+                  Department &amp; Nodal Office</span>
+                <div style="font-weight:600; color:#1e293b;">Office of the Executive Engineer, MIDC Division-II,
+                  Shankarseth Road, Pune 411037 / Chakan Sub-Division Office</div>
+              </div>
+              <div>
+                <span
+                  style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Submission
+                  &amp; Inspection Procedure</span>
+                <div style="color:#475569; line-height:1.4;">Submit AutoDCR CAD drawing file online &rarr; Online
+                  scrutiny by Town Planner &rarr; Scrutiny fee payment &rarr; Issuance of formal Commencement
+                  Certificate (CC).</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="start-row"
+            style="grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f1f5f9; padding-top:0.85rem; margin-top:0.25rem;">
+            <a href="https://midcindia.org" target="_blank"
+              style="font-size:0.8rem; font-weight:700; color:#0d7a6b; text-decoration:none; display:inline-flex; align-items:center; gap:0.35rem;">
+              <span>🌐</span> Open MIDC Single Window Portal ↗
+            </a>
+            <button class="btn-start" onclick="handleStartApplication('REQ_BUILDING_SANCTION')">Start
+              application</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- GST Registration -->
+      <div class="approval-card">
+        <div class="approval-card-header" onclick="toggleCard(this)">
+          <div class="approval-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg></div>
+          <div class="approval-info">
+            <div class="approval-name">Goods &amp; Services Tax Registration (GSTIN)</div>
+            <div class="approval-dept">Goods &amp; Services Tax Network (GSTN) / CBIC</div>
+          </div>
+          <div class="approval-meta">
+            <div class="approval-meta-item"><span class="approval-meta-label">Category</span><span
+                class="approval-meta-val">Taxation</span></div>
+            <div class="approval-meta-item"><span class="approval-meta-label">Indicative Timeline</span><span
+                class="approval-meta-val">7 working days</span></div>
+          </div>
+          <span class="approval-status-badge badge-obtained">● Obtained &amp; Active</span>
+          <svg class="approval-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+        <div class="approval-body">
+          <div>
+            <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0d7a6b;">
+              <span>📁</span> Mandatory Documents to Upload:
+            </div>
+            <div class="doc-list">
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>PAN Card of Corporate Entity &amp; Authorized Signatories</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">Incorporation Certificate &amp; PAN card of company
+                  </div>
+                </div>
+              </div>
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>Registered Office Proof &amp; Electricity Meter Bill</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">MIDC lease agreement &amp; latest utility bill (under 2
+                    months old)</div>
+                </div>
+              </div>
+              <div class="doc-item">
+                <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div>
+                  <strong>Bank Account Details &amp; Cancelled Cheque</strong>
+                  <div style="font-size:0.72rem; color:#64748b;">Current bank account statement bearing entity IFSC
+                    &amp; account number</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0f172a;">
+              <span>🏛️</span> Where to Submit / Given Actually:
+            </div>
+            <div
+              style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem; font-size:0.82rem; display:flex; flex-direction:column; gap:0.6rem;">
+              <div>
+                <span
+                  style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Official
+                  Government Portal</span>
+                <a href="https://gst.gov.in" target="_blank"
+                  style="color:#0d7a6b; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:0.3rem;">
+                  🌐 GST Common Portal (gst.gov.in) ↗
+                </a>
+              </div>
+              <div>
+                <span
+                  style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Jurisdictional
+                  Tax Ward</span>
+                <div style="font-weight:600; color:#1e293b;">Range-IV (Chakan), Central GST Division Pune-II, GST
+                  Bhavan, Yerwada, Pune 411006</div>
+              </div>
+              <div>
+                <span
+                  style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Status</span>
+                <div style="color:#16a34a; font-weight:700;">GSTIN: 27AAHCS4821P1Z7 (Active &amp; Monthly Return
+                  Compliant)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="start-row"
+            style="grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f1f5f9; padding-top:0.85rem; margin-top:0.25rem;">
+            <a href="https://gst.gov.in" target="_blank"
+              style="font-size:0.8rem; font-weight:700; color:#0d7a6b; text-decoration:none; display:inline-flex; align-items:center; gap:0.35rem;">
+              <span>🌐</span> Open GST Common Portal (gst.gov.in) ↗
+            </a>
+            <button class="btn-start" style="background:#16a34a;"
+              onclick="AlgoUI.showToast('GST Registration 27AAHCS4821P1Z7 is fully active.', 'info')">✓ Active &amp;
+              Verified</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
-  <div class="content">
-    <div class="page-header">
-      <div><h1 class="page-title">Required Approvals</h1><p class="page-subtitle">Review the approvals identified from your business profile and operational details.</p></div>
-      <button type="button" class="btn-gen" onclick="openNewApplicationModal()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Start New Application
-      </button>
-    </div>
-    <div class="info-banner">
-      <div class="info-banner-left">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d7a6b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        <div>
-          <div class="info-banner-title">Mandatory Regulatory Clearances for Active Unit</div>
-          <div class="info-banner-text">Based on precision manufacturing, Chakan MIDC location, 146 employees and installed power details. Last reviewed 10 Sep 2026.</div>
-        </div>
-      </div>
-      <a href="profile.html" class="info-link">Review profile inputs</a>
-    </div>
-    <div class="filters-bar">
-      <div class="filter-group">
-        <span class="filter-label">Approval status</span>
-        <select class="filter-select"><option>All statuses</option><option>Required</option><option>In progress</option><option>Obtained</option></select>
-      </div>
-      <div class="filter-group">
-        <span class="filter-label">Department</span>
-        <select class="filter-select"><option>All departments</option><option>Fire &amp; Emergency</option><option>Industrial Safety</option><option>Pollution Control</option></select>
-      </div>
-      <div class="filter-group">
-        <span class="filter-label">Approval type</span>
-        <select class="filter-select"><option>All types</option><option>Licence</option><option>NOC</option><option>Registration</option></select>
-      </div>
-      <div class="filter-group">
-        <span class="filter-label">Business unit</span>
-        <select class="filter-select"><option>Chakan Unit</option></select>
-      </div>
-      <span class="filter-reset">Reset filters</span>
-    </div>
-    <div class="count-row">
-      <span class="count-title">12 approvals identified</span>
-      <div class="count-pills">
-        <span class="count-pill pill-req">● 5 required</span>
-        <span class="count-pill pill-prog">● 4 in progress</span>
-        <span class="count-pill pill-obt">● 3 obtained</span>
-      </div>
-    </div>
+  <script>
+    function toggleCard(header) {
+      const body = header.nextElementSibling;
+      const chevron = header.querySelector('.approval-chevron');
+      const isOpen = body.classList.contains('open');
+      body.classList.toggle('open', !isOpen);
+      if (chevron) chevron.classList.toggle('open', !isOpen);
+    }
 
-    <!-- FIRE NOC (expanded) -->
-    <div class="approval-card">
-      <div class="approval-card-header" onclick="toggleCard(this)">
-        <div class="approval-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
-        <div class="approval-info">
-          <div class="approval-name">Fire No Objection Certificate (Fire NOC)</div>
-          <div class="approval-dept">Maharashtra Fire &amp; Emergency Services · MIDC Fire Station</div>
-        </div>
-        <div class="approval-meta">
-          <div class="approval-meta-item"><span class="approval-meta-label">Category</span><span class="approval-meta-val">Safety &amp; NBC</span></div>
-          <div class="approval-meta-item"><span class="approval-meta-label">Indicative Timeline</span><span class="approval-meta-val">15–30 days</span></div>
-        </div>
-        <span class="approval-status-badge badge-required">● Required</span>
-        <svg class="approval-chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="approval-body open">
-        <div>
-          <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0d7a6b;">
-            <span>📁</span> Mandatory Documents to Upload:
-          </div>
-          <div class="doc-list">
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>Site &amp; Building Layout Plan</strong>
-                <div style="font-size:0.72rem; color:#64748b;">AutoCAD / PDF (1:100 scale showing fire exits, hydrants &amp; setbacks)</div>
-              </div>
-            </div>
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>Fire Safety System &amp; Hydrant Hydraulic Calculation</strong>
-                <div style="font-size:0.72rem; color:#64748b;">Certified technical report by Licensed Fire Protection Agency</div>
-              </div>
-            </div>
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>Structural Stability Certificate &amp; NBC Compliance</strong>
-                <div style="font-size:0.72rem; color:#64748b;">Issued by Government Chartered Structural Engineer</div>
-              </div>
-            </div>
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>Authorised Signatory Board Resolution &amp; Land Allotment</strong>
-                <div style="font-size:0.72rem; color:#64748b;">MIDC Possession Certificate &amp; Identity Proof of Signatory</div>
-              </div>
-            </div>
-          </div>
-        </div>
+    function applyApprovalFilters() {
+      const statusSel = document.querySelectorAll(".filter-select")[0]?.value?.toLowerCase() || 'all';
+      const deptSel = document.querySelectorAll(".filter-select")[1]?.value?.toLowerCase() || 'all';
 
-        <div>
-          <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0f172a;">
-            <span>🏛️</span> Where to Submit / Given Actually:
-          </div>
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem; font-size:0.82rem; display:flex; flex-direction:column; gap:0.6rem;">
-            <div>
-              <span style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Official Government Portal</span>
-              <a href="https://mahafireservice.gov.in" target="_blank" style="color:#0d7a6b; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:0.3rem;">
-                🌐 Maharashtra Fire Portal (mahafireservice.gov.in) / MAITRI Single Window ↗
-              </a>
-            </div>
-            <div>
-              <span style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Receiving Department &amp; Physical Office</span>
-              <div style="font-weight:600; color:#1e293b;">Office of the Chief Fire Officer (CFO), MIDC Fire Station, Phase-II Chakan Industrial Area, Pune 410501</div>
-            </div>
-            <div>
-              <span style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Submission &amp; Inspection Procedure</span>
-              <div style="color:#475569; line-height:1.4;">1. Submit online e-form with attached drawings &rarr; 2. Deposit 1 hardcopy blueprint set at Chakan Fire Station &rarr; 3. Sub-Divisional Fire Officer conducts physical site inspection prior to final grant.</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="start-row" style="grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f1f5f9; padding-top:0.85rem; margin-top:0.25rem;">
-          <a href="https://maitri.mahaonline.gov.in" target="_blank" style="font-size:0.8rem; font-weight:700; color:#0d7a6b; text-decoration:none; display:inline-flex; align-items:center; gap:0.35rem;">
-            <span>🌐</span> Go to Maharashtra Single Window Portal (MAITRI) ↗
-          </a>
-          <button class="btn-start" onclick="handleStartApplication('REQ_FIRE_NOC')">Start application</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Factory Licence -->
-    <div class="approval-card">
-      <div class="approval-card-header" onclick="toggleCard(this)">
-        <div class="approval-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
-        <div class="approval-info">
-          <div class="approval-name">Factory Operating Licence (Form 1 &amp; Form 2)</div>
-          <div class="approval-dept">Directorate of Industrial Safety &amp; Health (DISH), Maharashtra</div>
-        </div>
-        <div class="approval-meta">
-          <div class="approval-meta-item"><span class="approval-meta-label">Category</span><span class="approval-meta-val">Labour &amp; Safety</span></div>
-          <div class="approval-meta-item"><span class="approval-meta-label">Indicative Timeline</span><span class="approval-meta-val">30–45 days</span></div>
-        </div>
-        <span class="approval-status-badge badge-inprog">● In progress</span>
-        <svg class="approval-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="approval-body">
-        <div>
-          <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0d7a6b;">
-            <span>📁</span> Mandatory Documents to Upload:
-          </div>
-          <div class="doc-list">
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>Form 1 Factory Layout &amp; Machinery Spacing Plan</strong>
-                <div style="font-size:0.72rem; color:#64748b;">Dimensioned drawing showing aisles, ventilation, emergency doors &amp; machine layout</div>
-              </div>
-            </div>
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>Stability Certificate by Recognized Competent Person (Form 1-A)</strong>
-                <div style="font-size:0.72rem; color:#64748b;">Chartered engineer certificate confirming plant load-bearing capacity</div>
-              </div>
-            </div>
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>Sanctioned Power Load Schedule &amp; Manufacturing Flow Chart</strong>
-                <div style="font-size:0.72rem; color:#64748b;">MSEDCL power sanction letter (450 kW) &amp; list of installed electric motors</div>
-              </div>
-            </div>
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>Occupier &amp; Factory Manager Appointment Declarations</strong>
-                <div style="font-size:0.72rem; color:#64748b;">Form 2 declaration with residential address proof &amp; emergency contact details</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0f172a;">
-            <span>🏛️</span> Where to Submit / Given Actually:
-          </div>
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem; font-size:0.82rem; display:flex; flex-direction:column; gap:0.6rem;">
-            <div>
-              <span style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Official Government Portal</span>
-              <a href="https://dish.maharashtra.gov.in" target="_blank" style="color:#0d7a6b; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:0.3rem;">
-                🌐 DISH Maharashtra Portal (dish.maharashtra.gov.in) / LMS ↗
-              </a>
-            </div>
-            <div>
-              <span style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Receiving Department &amp; Physical Office</span>
-              <div style="font-weight:600; color:#1e293b;">Office of the Joint Director of Industrial Safety &amp; Health, Pune Division, Commercial Complex, Wakdewadi, Pune 411003</div>
-            </div>
-            <div>
-              <span style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Submission &amp; Inspection Procedure</span>
-              <div style="color:#475569; line-height:1.4;">Submit Form 1 online &rarr; Scrutiny by Deputy Director &rarr; Physical inspection of plant by DISH Inspector &rarr; Grant of factory licence under Section 6 of Factories Act 1948.</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="start-row" style="grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f1f5f9; padding-top:0.85rem; margin-top:0.25rem;">
-          <a href="https://dish.maharashtra.gov.in" target="_blank" style="font-size:0.8rem; font-weight:700; color:#0d7a6b; text-decoration:none; display:inline-flex; align-items:center; gap:0.35rem;">
-            <span>🌐</span> Open DISH Official Portal ↗
-          </a>
-          <button class="btn-start" onclick="handleStartApplication('REQ_FACTORIES_LICENSE')">Start application</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- MPCB CTE -->
-    <div class="approval-card">
-      <div class="approval-card-header" onclick="toggleCard(this)">
-        <div class="approval-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-        <div class="approval-info">
-          <div class="approval-name">Consent to Establish (CTE / CTO Orange Category)</div>
-          <div class="approval-dept">Maharashtra Pollution Control Board (MPCB)</div>
-        </div>
-        <div class="approval-meta">
-          <div class="approval-meta-item"><span class="approval-meta-label">Category</span><span class="approval-meta-val">Environmental</span></div>
-          <div class="approval-meta-item"><span class="approval-meta-label">Indicative Timeline</span><span class="approval-meta-val">60–90 days</span></div>
-        </div>
-        <span class="approval-status-badge badge-inprog">● In progress</span>
-        <svg class="approval-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="approval-body">
-        <div>
-          <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0d7a6b;">
-            <span>📁</span> Mandatory Documents to Upload:
-          </div>
-          <div class="doc-list">
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>Comprehensive Project Report (CPR) with Capital Investment</strong>
-                <div style="font-size:0.72rem; color:#64748b;">Certified CA certificate verifying gross fixed capital asset value (Plant &amp; Machinery)</div>
-              </div>
-            </div>
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>Effluent &amp; Air Emission Management Plan (ETP/APC Blueprint)</strong>
-                <div style="font-size:0.72rem; color:#64748b;">Design parameters for industrial wastewater, zero liquid discharge &amp; chimney stacks</div>
-              </div>
-            </div>
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>MIDC Plot Possession Order &amp; Water Supply Sanction Letter</strong>
-                <div style="font-size:0.72rem; color:#64748b;">MIDC water allotment agreement &amp; site location coordinate index</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0f172a;">
-            <span>🏛️</span> Where to Submit / Given Actually:
-          </div>
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem; font-size:0.82rem; display:flex; flex-direction:column; gap:0.6rem;">
-            <div>
-              <span style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Official Government Portal</span>
-              <a href="https://ecmpcb.in" target="_blank" style="color:#0d7a6b; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:0.3rem;">
-                🌐 MPCB Online Consent Management &amp; Monitoring System (ecmpcb.in) ↗
-              </a>
-            </div>
-            <div>
-              <span style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Receiving Department &amp; Regional Office</span>
-              <div style="font-weight:600; color:#1e293b;">Maharashtra Pollution Control Board, Regional Office Pune, Jog Centre, 3rd Floor, Old Mumbai-Pune Road, Wakdewadi, Pune 411003</div>
-            </div>
-            <div>
-              <span style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Submission &amp; Inspection Procedure</span>
-              <div style="color:#475569; line-height:1.4;">100% digital paperless e-filing via Digital Signature Certificate (DSC) &rarr; Field Officer site verification &rarr; Consent Committee review &rarr; Order issuance.</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="start-row" style="grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f1f5f9; padding-top:0.85rem; margin-top:0.25rem;">
-          <a href="https://ecmpcb.in" target="_blank" style="font-size:0.8rem; font-weight:700; color:#0d7a6b; text-decoration:none; display:inline-flex; align-items:center; gap:0.35rem;">
-            <span>🌐</span> Open MPCB Portal (ecmpcb.in) ↗
-          </a>
-          <button class="btn-start" onclick="handleStartApplication('REQ_SPCB_CTE_CTO')">Start application</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Building Plan Approval -->
-    <div class="approval-card">
-      <div class="approval-card-header" onclick="toggleCard(this)">
-        <div class="approval-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
-        <div class="approval-info">
-          <div class="approval-name">Industrial Building Plan Sanction</div>
-          <div class="approval-dept">Maharashtra Industrial Development Corporation (MIDC) Town Planning</div>
-        </div>
-        <div class="approval-meta">
-          <div class="approval-meta-item"><span class="approval-meta-label">Category</span><span class="approval-meta-val">Land &amp; Building</span></div>
-          <div class="approval-meta-item"><span class="approval-meta-label">Indicative Timeline</span><span class="approval-meta-val">30–45 days</span></div>
-        </div>
-        <span class="approval-status-badge badge-required">● Required</span>
-        <svg class="approval-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="approval-body">
-        <div>
-          <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0d7a6b;">
-            <span>📁</span> Mandatory Documents to Upload:
-          </div>
-          <div class="doc-list">
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>Architectural CAD Drawings (AutoDCR DXF/DWG format)</strong>
-                <div style="font-size:0.72rem; color:#64748b;">Floor elevations, setbacks, FSI / FAR calculations &amp; site access plans</div>
-              </div>
-            </div>
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>Structural Stability &amp; Geo-Technical Soil Investigation Report</strong>
-                <div style="font-size:0.72rem; color:#64748b;">Signed by Licensed Structural Engineer with seismic zone IV compliance</div>
-              </div>
-            </div>
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>Registered MIDC Lease Deed &amp; Demarcation Certificate</strong>
-                <div style="font-size:0.72rem; color:#64748b;">Plot possession deed from MIDC Regional Officer Pune</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0f172a;">
-            <span>🏛️</span> Where to Submit / Given Actually:
-          </div>
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem; font-size:0.82rem; display:flex; flex-direction:column; gap:0.6rem;">
-            <div>
-              <span style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Official Government Portal</span>
-              <a href="https://midcindia.org" target="_blank" style="color:#0d7a6b; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:0.3rem;">
-                🌐 MIDC Automated Building Plan Approval System (midcindia.org) ↗
-              </a>
-            </div>
-            <div>
-              <span style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Receiving Department &amp; Nodal Office</span>
-              <div style="font-weight:600; color:#1e293b;">Office of the Executive Engineer, MIDC Division-II, Shankarseth Road, Pune 411037 / Chakan Sub-Division Office</div>
-            </div>
-            <div>
-              <span style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Submission &amp; Inspection Procedure</span>
-              <div style="color:#475569; line-height:1.4;">Submit AutoDCR CAD drawing file online &rarr; Online scrutiny by Town Planner &rarr; Scrutiny fee payment &rarr; Issuance of formal Commencement Certificate (CC).</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="start-row" style="grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f1f5f9; padding-top:0.85rem; margin-top:0.25rem;">
-          <a href="https://midcindia.org" target="_blank" style="font-size:0.8rem; font-weight:700; color:#0d7a6b; text-decoration:none; display:inline-flex; align-items:center; gap:0.35rem;">
-            <span>🌐</span> Open MIDC Single Window Portal ↗
-          </a>
-          <button class="btn-start" onclick="handleStartApplication('REQ_BUILDING_SANCTION')">Start application</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- GST Registration -->
-    <div class="approval-card">
-      <div class="approval-card-header" onclick="toggleCard(this)">
-        <div class="approval-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-        <div class="approval-info">
-          <div class="approval-name">Goods &amp; Services Tax Registration (GSTIN)</div>
-          <div class="approval-dept">Goods &amp; Services Tax Network (GSTN) / CBIC</div>
-        </div>
-        <div class="approval-meta">
-          <div class="approval-meta-item"><span class="approval-meta-label">Category</span><span class="approval-meta-val">Taxation</span></div>
-          <div class="approval-meta-item"><span class="approval-meta-label">Indicative Timeline</span><span class="approval-meta-val">7 working days</span></div>
-        </div>
-        <span class="approval-status-badge badge-obtained">● Obtained &amp; Active</span>
-        <svg class="approval-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="approval-body">
-        <div>
-          <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0d7a6b;">
-            <span>📁</span> Mandatory Documents to Upload:
-          </div>
-          <div class="doc-list">
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>PAN Card of Corporate Entity &amp; Authorized Signatories</strong>
-                <div style="font-size:0.72rem; color:#64748b;">Incorporation Certificate &amp; PAN card of company</div>
-              </div>
-            </div>
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>Registered Office Proof &amp; Electricity Meter Bill</strong>
-                <div style="font-size:0.72rem; color:#64748b;">MIDC lease agreement &amp; latest utility bill (under 2 months old)</div>
-              </div>
-            </div>
-            <div class="doc-item">
-              <div class="doc-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div>
-                <strong>Bank Account Details &amp; Cancelled Cheque</strong>
-                <div style="font-size:0.72rem; color:#64748b;">Current bank account statement bearing entity IFSC &amp; account number</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="ab-section-title" style="display:flex; align-items:center; gap:0.4rem; color:#0f172a;">
-            <span>🏛️</span> Where to Submit / Given Actually:
-          </div>
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem; font-size:0.82rem; display:flex; flex-direction:column; gap:0.6rem;">
-            <div>
-              <span style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Official Government Portal</span>
-              <a href="https://gst.gov.in" target="_blank" style="color:#0d7a6b; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:0.3rem;">
-                🌐 GST Common Portal (gst.gov.in) ↗
-              </a>
-            </div>
-            <div>
-              <span style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Jurisdictional Tax Ward</span>
-              <div style="font-weight:600; color:#1e293b;">Range-IV (Chakan), Central GST Division Pune-II, GST Bhavan, Yerwada, Pune 411006</div>
-            </div>
-            <div>
-              <span style="font-size:0.68rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block;">Status</span>
-              <div style="color:#16a34a; font-weight:700;">GSTIN: 27AAHCS4821P1Z7 (Active &amp; Monthly Return Compliant)</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="start-row" style="grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f1f5f9; padding-top:0.85rem; margin-top:0.25rem;">
-          <a href="https://gst.gov.in" target="_blank" style="font-size:0.8rem; font-weight:700; color:#0d7a6b; text-decoration:none; display:inline-flex; align-items:center; gap:0.35rem;">
-            <span>🌐</span> Open GST Common Portal (gst.gov.in) ↗
-          </a>
-          <button class="btn-start" style="background:#16a34a;" onclick="AlgoUI.showToast('GST Registration 27AAHCS4821P1Z7 is fully active.', 'info')">✓ Active &amp; Verified</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-<script>
-function toggleCard(header){
-  const body = header.nextElementSibling;
-  const chevron = header.querySelector('.approval-chevron');
-  const isOpen = body.classList.contains('open');
-  body.classList.toggle('open', !isOpen);
-  if (chevron) chevron.classList.toggle('open', !isOpen);
-}
-
-function applyApprovalFilters() {
-  const statusSel = document.querySelectorAll(".filter-select")[0]?.value?.toLowerCase() || 'all';
-  const deptSel = document.querySelectorAll(".filter-select")[1]?.value?.toLowerCase() || 'all';
-
-  document.querySelectorAll(".approval-card").forEach(card => {
-    const statusText = card.querySelector(".approval-status-badge")?.textContent?.toLowerCase() || '';
-    const deptText = card.querySelector(".approval-dept")?.textContent?.toLowerCase() || '';
-
-    let matchStatus = (statusSel.includes('all') || statusText.includes(statusSel));
-    let matchDept = (deptSel.includes('all') || deptText.includes(deptSel.replace('&amp;', '&')));
-
-    card.style.display = (matchStatus && matchDept) ? "block" : "none";
-  });
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  const resetBtn = document.querySelector(".filter-reset");
-  if (resetBtn) {
-    resetBtn.addEventListener("click", () => {
-      document.querySelectorAll(".filter-select").forEach(sel => sel.selectedIndex = 0);
-      document.querySelectorAll(".approval-card").forEach(c => c.style.display = "block");
-      AlgoUI.showToast("Filters reset to default view.", "info");
-    });
-  }
-
-  document.querySelectorAll(".filter-select").forEach(sel => {
-    sel.addEventListener("change", applyApprovalFilters);
-  });
-
-  document.querySelectorAll(".count-pill").forEach(pill => {
-    pill.style.cursor = "pointer";
-    pill.addEventListener("click", () => {
-      const text = pill.textContent.toLowerCase();
       document.querySelectorAll(".approval-card").forEach(card => {
-        const status = card.querySelector(".approval-status-badge")?.textContent?.toLowerCase() || '';
-        if (text.includes("req")) {
-          card.style.display = status.includes("req") ? "block" : "none";
-        } else if (text.includes("prog")) {
-          card.style.display = status.includes("prog") ? "block" : "none";
-        } else if (text.includes("obt")) {
-          card.style.display = status.includes("obt") ? "block" : "none";
-        }
+        const statusText = card.querySelector(".approval-status-badge")?.textContent?.toLowerCase() || '';
+        const deptText = card.querySelector(".approval-dept")?.textContent?.toLowerCase() || '';
+
+        let matchStatus = (statusSel.includes('all') || statusText.includes(statusSel));
+        let matchDept = (deptSel.includes('all') || deptText.includes(deptSel.replace('&amp;', '&')));
+
+        card.style.display = (matchStatus && matchDept) ? "block" : "none";
       });
-      AlgoUI.showToast("Filtered by: " + pill.textContent.trim(), "info");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const resetBtn = document.querySelector(".filter-reset");
+      if (resetBtn) {
+        resetBtn.addEventListener("click", () => {
+          document.querySelectorAll(".filter-select").forEach(sel => sel.selectedIndex = 0);
+          document.querySelectorAll(".approval-card").forEach(c => c.style.display = "block");
+          AlgoUI.showToast("Filters reset to default view.", "info");
+        });
+      }
+
+      document.querySelectorAll(".filter-select").forEach(sel => {
+        sel.addEventListener("change", applyApprovalFilters);
+      });
+
+      document.querySelectorAll(".count-pill").forEach(pill => {
+        pill.style.cursor = "pointer";
+        pill.addEventListener("click", () => {
+          const text = pill.textContent.toLowerCase();
+          document.querySelectorAll(".approval-card").forEach(card => {
+            const status = card.querySelector(".approval-status-badge")?.textContent?.toLowerCase() || '';
+            if (text.includes("req")) {
+              card.style.display = status.includes("req") ? "block" : "none";
+            } else if (text.includes("prog")) {
+              card.style.display = status.includes("prog") ? "block" : "none";
+            } else if (text.includes("obt")) {
+              card.style.display = status.includes("obt") ? "block" : "none";
+            }
+          });
+          AlgoUI.showToast("Filtered by: " + pill.textContent.trim(), "info");
+        });
+      });
     });
-  });
-});
-</script>
-<script src="script.js?v=4.1"></script>
+  </script>
+  <script src="script.js?v=4.1"></script>
 </body>
+
 </html>
-
-
-
-
