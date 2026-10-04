@@ -1,41 +1,41 @@
 /**
  * ============================================================================
- * AnumatiSetu — Renewals Routes (User Scoped)
+ * AnumatiSetu — Renewals & Compliance Routes (Mongoose / User Scoped)
  * ============================================================================
  */
 
 const express = require("express");
 const router = express.Router();
-const { getPool } = require("../db");
+const ComplianceRequirement = require("../models/ComplianceRequirement");
 const { addNotification, logActivity } = require("../helpers");
 const { requireAuth } = require("../middleware/auth");
 
 router.use(requireAuth);
 
-function parseRenewal(row) {
+function parseRenewal(doc) {
+  if (!doc) return null;
   return {
-    id:             row.id,
-    applicationId:  row.application_id,
-    requirementCode: row.requirement_code,
-    title:          row.title,
-    department:     row.department,
-    licenseNumber:  row.license_number,
-    issueDate:      row.issue_date,
-    expiryDate:     row.expiry_date,
-    validityYears:  row.validity_years,
-    status:         row.status,
+    id:              doc.id,
+    applicationId:   doc.applicationId,
+    requirementCode: doc.requirementCode,
+    title:           doc.title,
+    department:      doc.department,
+    licenseNumber:   doc.licenseNumber,
+    issueDate:       doc.issueDate,
+    expiryDate:      doc.expiryDate,
+    validityYears:   doc.validityYears,
+    status:          doc.status,
+    frequency:       doc.frequency,
+    dueDate:         doc.dueDate,
+    penaltyRisk:     doc.penaltyRisk
   };
 }
 
 // GET /api/renewals
 router.get("/", async (req, res) => {
   try {
-    const db = await getPool();
-    const [rows] = await db.execute(
-      "SELECT * FROM renewals WHERE user_id = ? ORDER BY created_at DESC",
-      [req.user.id]
-    );
-    res.json(rows.map(parseRenewal));
+    const list = await ComplianceRequirement.find({ userId: req.user.id }).sort({ createdAt: -1 }).lean();
+    res.json(list.map(parseRenewal));
   } catch (err) {
     console.error("[Renewals GET]", err);
     res.status(500).json({ error: err.message });
@@ -45,31 +45,22 @@ router.get("/", async (req, res) => {
 // POST /api/renewals/:id/renew
 router.post("/:id/renew", async (req, res) => {
   try {
-    const db = await getPool();
-    const [rows] = await db.execute(
-      "SELECT * FROM renewals WHERE user_id = ? AND id = ?",
-      [req.user.id, req.params.id]
-    );
-    if (rows.length === 0) return res.status(404).json({ error: "License record not found" });
+    const item = await ComplianceRequirement.findOne({ userId: req.user.id, id: req.params.id });
+    if (!item) return res.status(404).json({ error: "License record not found" });
 
-    const r = rows[0];
-    const currentExpiry = new Date(r.expiry_date);
-    currentExpiry.setFullYear(currentExpiry.getFullYear() + r.validity_years);
+    const currentExpiry = new Date(item.expiryDate || new Date());
+    currentExpiry.setFullYear(currentExpiry.getFullYear() + (item.validityYears || 1));
     const newExpiry = currentExpiry.toISOString().split("T")[0];
 
-    await db.execute(
-      "UPDATE renewals SET expiry_date = ?, status = 'ACTIVE' WHERE user_id = ? AND id = ?",
-      [newExpiry, req.user.id, r.id]
-    );
+    item.expiryDate = newExpiry;
+    item.status = "ACTIVE";
+    item.lastFiledDate = new Date().toISOString().split("T")[0];
+    await item.save();
 
-    await logActivity(req.user.id, `License renewed: ${r.title} until ${newExpiry}`, "Renewals");
-    await addNotification(req.user.id, `License renewed for ${r.title}`, "success");
+    await logActivity(req.user.id, `License renewed: ${item.title} until ${newExpiry}`, "Renewals");
+    await addNotification(req.user.id, `License renewed for ${item.title}`, "success");
 
-    const [updated] = await db.execute(
-      "SELECT * FROM renewals WHERE user_id = ? AND id = ?",
-      [req.user.id, r.id]
-    );
-    res.json(parseRenewal(updated[0]));
+    res.json(parseRenewal(item));
   } catch (err) {
     console.error("[Renewals PATCH]", err);
     res.status(500).json({ error: err.message });

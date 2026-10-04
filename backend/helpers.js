@@ -1,56 +1,67 @@
 /**
  * ============================================================================
- * AnumatiSetu — Backend Helper Utilities (User Scoped)
+ * AnumatiSetu — Backend Helper Utilities (Mongoose & User Scoped)
  * ============================================================================
  */
 
-const { getPool } = require("./db");
 const crypto = require("crypto");
+const Notification = require("./models/Notification");
+const AuditLog = require("./models/AuditLog");
 
 async function addNotification(userId, message, type = "info") {
   if (!userId) return;
-  const db = await getPool();
-  const id = "NOTIF-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
-  const now = new Date();
-  const timeLabel = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
-    ", " + now.toLocaleDateString([], { month: "short", day: "numeric" });
+  try {
+    const id = "NOTIF-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+    const now = new Date();
+    const timeLabel = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
+      ", " + now.toLocaleDateString([], { month: "short", day: "numeric" });
 
-  await db.execute(
-    `INSERT INTO notifications (id, user_id, message, type, time_label, created_at)
-     VALUES (?, ?, ?, ?, ?, NOW())`,
-    [id, userId, message, type, timeLabel]
-  );
+    await Notification.create({
+      id,
+      userId,
+      message,
+      type,
+      timeLabel,
+      isRead: false
+    });
 
-  // Cap at 20 notifications per user
-  await db.execute(`
-    DELETE FROM notifications
-    WHERE user_id = ? AND id NOT IN (
-      SELECT id FROM (SELECT id FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20) AS t
-    )
-  `, [userId, userId]);
+    // Keep latest 25 notifications per user
+    const userNotifs = await Notification.find({ userId }).sort({ createdAt: -1 }).select("_id").lean();
+    if (userNotifs.length > 25) {
+      const idsToDelete = userNotifs.slice(25).map(n => n._id);
+      await Notification.deleteMany({ _id: { $in: idsToDelete } });
+    }
+  } catch (err) {
+    console.error("[addNotification Error]", err.message);
+  }
 }
 
-async function logActivity(userId, text, module = "System") {
+async function logActivity(userId, text, module = "System", metadata = {}) {
   if (!userId) return;
-  const db = await getPool();
-  const id = "ACT-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
-  const now = new Date();
-  const timestampLabel = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
-    ", " + now.toLocaleDateString([], { month: "short", day: "numeric" });
+  try {
+    const id = "ACT-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+    const now = new Date();
+    const timestampLabel = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
+      ", " + now.toLocaleDateString([], { month: "short", day: "numeric" });
 
-  await db.execute(
-    `INSERT INTO activity_log (id, user_id, text, module, timestamp_label, created_at)
-     VALUES (?, ?, ?, ?, ?, NOW())`,
-    [id, userId, text, module, timestampLabel]
-  );
+    await AuditLog.create({
+      id,
+      userId,
+      text,
+      module,
+      timestampLabel,
+      metadata
+    });
 
-  // Cap at 25 entries per user
-  await db.execute(`
-    DELETE FROM activity_log
-    WHERE user_id = ? AND id NOT IN (
-      SELECT id FROM (SELECT id FROM activity_log WHERE user_id = ? ORDER BY created_at DESC LIMIT 25) AS t
-    )
-  `, [userId, userId]);
+    // Keep latest 30 audit logs per user
+    const userLogs = await AuditLog.find({ userId }).sort({ createdAt: -1 }).select("_id").lean();
+    if (userLogs.length > 30) {
+      const idsToDelete = userLogs.slice(30).map(l => l._id);
+      await AuditLog.deleteMany({ _id: { $in: idsToDelete } });
+    }
+  } catch (err) {
+    console.error("[logActivity Error]", err.message);
+  }
 }
 
 function generateId(prefix) {

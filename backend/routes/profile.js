@@ -1,13 +1,15 @@
 /**
  * ============================================================================
- * AnumatiSetu — Profile Routes (User Scoped)
+ * AnumatiSetu — Profile Routes (Mongoose / User Scoped)
  * ============================================================================
  */
 
 const express = require("express");
 const router = express.Router();
-const { getPool } = require("../db");
-const { computeRequirements } = require("../catalog");
+const IndustrialProfile = require("../models/IndustrialProfile");
+const User = require("../models/User");
+const Approval = require("../models/Approval");
+const { evaluateApprovalsForProfile } = require("../services/ruleEngine");
 const { logActivity } = require("../helpers");
 const { requireAuth } = require("../middleware/auth");
 
@@ -16,25 +18,24 @@ router.use(requireAuth);
 // GET /api/profile
 router.get("/", async (req, res) => {
   try {
-    const db = await getPool();
-    const [rows] = await db.execute(
-      "SELECT * FROM profile WHERE user_id = ?",
-      [req.user.id]
-    );
-    if (rows.length === 0) return res.json(null);
+    const profile = await IndustrialProfile.findOne({ userId: req.user.id }).lean();
+    if (!profile) return res.json(null);
 
-    const row = rows[0];
     res.json({
-      businessName:     row.business_name,
-      industryType:     row.industry_type,
-      businessStage:    row.business_stage,
-      location:         row.location,
-      state:            row.state,
-      investmentScale:  row.investment_scale,
-      employeesCount:   row.employees_count,
-      businessCategory: row.business_category,
-      updatedAt:        row.updated_at,
-      isComplete:       !!(row.business_name && row.location),
+      businessName:     profile.businessName,
+      industryType:     profile.industryType,
+      businessStage:    profile.businessStage,
+      location:         profile.location,
+      district:         profile.district,
+      state:            profile.state,
+      investmentScale:  profile.investmentScale,
+      employeesCount:   profile.employeesCount,
+      businessCategory: profile.businessCategory,
+      pollutionCategory: profile.pollutionCategory,
+      powerLoadKW:      profile.powerLoadKW,
+      landAreaSqM:      profile.landAreaSqM,
+      updatedAt:        profile.updatedAt,
+      isComplete:       !!(profile.businessName && profile.location),
     });
   } catch (err) {
     console.error("[Profile GET]", err);
@@ -44,41 +45,40 @@ router.get("/", async (req, res) => {
 
 // POST /api/profile
 router.post("/", async (req, res) => {
-  const { businessName, industryType, businessStage, location, state,
-          investmentScale, employeesCount, businessCategory } = req.body;
+  const { businessName, industryType, businessStage, location, district, state,
+          investmentScale, employeesCount, businessCategory, pollutionCategory, powerLoadKW, landAreaSqM } = req.body;
 
   if (!businessName || !location) {
     return res.status(400).json({ error: "businessName and location are required." });
   }
 
   try {
-    const db = await getPool();
-    await db.execute(`
-      INSERT INTO profile
-        (user_id, business_name, industry_type, business_stage, location, state,
-         investment_scale, employees_count, business_category)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        business_name     = VALUES(business_name),
-        industry_type     = VALUES(industry_type),
-        business_stage    = VALUES(business_stage),
-        location          = VALUES(location),
-        state             = VALUES(state),
-        investment_scale  = VALUES(investment_scale),
-        employees_count   = VALUES(employees_count),
-        business_category = VALUES(business_category)
-    `, [req.user.id, businessName.trim(), industryType, businessStage, location.trim(), state,
-        investmentScale, parseInt(employeesCount) || 0, businessCategory]);
+    const profileData = {
+      userId: req.user.id,
+      businessName: businessName.trim(),
+      industryType: industryType || "Manufacturing",
+      businessStage: businessStage || "New Setup",
+      location: location.trim(),
+      district: district || "",
+      state: state || "Maharashtra",
+      investmentScale: investmentScale || "",
+      employeesCount: parseInt(employeesCount) || 0,
+      businessCategory: businessCategory || "Small Enterprise",
+      pollutionCategory: pollutionCategory || "Orange",
+      powerLoadKW: parseFloat(powerLoadKW) || 0,
+      landAreaSqM: parseFloat(landAreaSqM) || 0,
+    };
 
-    // Also update users.business_name
-    await db.execute(
-      "UPDATE users SET business_name = ? WHERE id = ?",
-      [businessName.trim(), req.user.id]
+    const updated = await IndustrialProfile.findOneAndUpdate(
+      { userId: req.user.id },
+      profileData,
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
+    await User.updateOne({ id: req.user.id }, { businessName: businessName.trim() });
     await logActivity(req.user.id, `Business Profile updated: ${businessName.trim()}`, "Profile");
 
-    res.json({ success: true, businessName: businessName.trim() });
+    res.json({ success: true, businessName: updated.businessName });
   } catch (err) {
     console.error("[Profile POST]", err);
     res.status(500).json({ error: err.message });
@@ -88,26 +88,12 @@ router.post("/", async (req, res) => {
 // GET /api/profile/requirements
 router.get("/requirements", async (req, res) => {
   try {
-    const db = await getPool();
-    const [profileRows] = await db.execute(
-      "SELECT * FROM profile WHERE user_id = ?",
-      [req.user.id]
-    );
-    if (profileRows.length === 0) return res.json([]);
+    const profile = await IndustrialProfile.findOne({ userId: req.user.id }).lean();
+    if (!profile) return res.json([]);
 
-    const row = profileRows[0];
-    const profile = {
-      industryType:     row.industry_type,
-      employeesCount:   row.employees_count,
-      businessCategory: row.business_category,
-    };
+    const existingApps = await Approval.find({ userId: req.user.id }).lean();
+    const requirements = await evaluateApprovalsForProfile(profile, existingApps);
 
-    const [appRows] = await db.execute(
-      "SELECT requirement_code, status FROM applications WHERE user_id = ?",
-      [req.user.id]
-    );
-
-    const requirements = computeRequirements(profile, appRows);
     res.json(requirements);
   } catch (err) {
     console.error("[Profile Requirements GET]", err);

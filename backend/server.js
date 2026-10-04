@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * AnumatiSetu — Express Backend Server
+ * AnumatiSetu — Express Backend Server (MongoDB & Mongoose)
  * ============================================================================
  */
 
@@ -10,7 +10,7 @@ const path = require("path");
 const fs = require("fs");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
-const { getPool } = require("./db");
+const { connectDB } = require("./db");
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "4000");
@@ -51,10 +51,11 @@ app.use("/api/applications", require("./routes/applications"));
 app.use("/api/documents", require("./routes/documents"));
 app.use("/api/renewals", require("./routes/renewals"));
 app.use("/api/dashboard", require("./routes/dashboard"));
+app.use("/api/schemes", require("./routes/schemes"));
 app.use("/api/chat", require("./routes/chat"));
 
 // Health check
-app.get("/api/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
+app.get("/api/health", (_req, res) => res.json({ status: "ok", database: "mongodb", timestamp: new Date().toISOString() }));
 
 // 404 handler for API
 app.use("/api/*", (_req, res) => {
@@ -75,14 +76,14 @@ app.use((err, _req, res, _next) => {
 // Startup
 (async () => {
   try {
-    await getPool();
+    await connectDB();
     app.listen(PORT, () => {
       console.log(`\n✅ AnumatiSetu Backend running at http://localhost:${PORT}`);
       console.log(`   Health check: http://localhost:${PORT}/api/health`);
       console.log(`   Uploads served: http://localhost:${PORT}/uploads/\n`);
     });
   } catch (err) {
-    console.error("\n❌ Failed to connect to MySQL:", err.message);
+    console.error("\n❌ Failed to connect to MongoDB Atlas:", err.message);
     process.exit(1);
   }
 })();

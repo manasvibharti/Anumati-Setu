@@ -1,12 +1,17 @@
 /**
  * ============================================================================
- * AnumatiSetu — Dashboard & Notifications Routes (User Scoped)
+ * AnumatiSetu — Dashboard & Notifications Routes (Mongoose / User Scoped)
  * ============================================================================
  */
 
 const express = require("express");
 const router = express.Router();
-const { getPool } = require("../db");
+const IndustrialProfile = require("../models/IndustrialProfile");
+const Approval = require("../models/Approval");
+const ComplianceRequirement = require("../models/ComplianceRequirement");
+const Notification = require("../models/Notification");
+const AuditLog = require("../models/AuditLog");
+const { evaluateApprovalsForProfile } = require("../services/ruleEngine");
 const { requireAuth } = require("../middleware/auth");
 
 router.use(requireAuth);
@@ -14,96 +19,72 @@ router.use(requireAuth);
 // GET /api/dashboard
 router.get("/", async (req, res) => {
   try {
-    const db = await getPool();
-
     // Profile
-    const [profileRows] = await db.execute(
-      "SELECT * FROM profile WHERE user_id = ?",
-      [req.user.id]
-    );
-    const profile = profileRows.length > 0 && profileRows[0].location ? {
-      businessName:     profileRows[0].business_name,
-      industryType:     profileRows[0].industry_type,
-      businessStage:    profileRows[0].business_stage,
-      location:         profileRows[0].location,
-      state:            profileRows[0].state,
-      employeesCount:   profileRows[0].employees_count,
-      businessCategory: profileRows[0].business_category,
+    const profileDoc = await IndustrialProfile.findOne({ userId: req.user.id }).lean();
+    const profile = profileDoc && profileDoc.location ? {
+      businessName:     profileDoc.businessName,
+      industryType:     profileDoc.industryType,
+      businessStage:    profileDoc.businessStage,
+      location:         profileDoc.location,
+      district:         profileDoc.district,
+      state:            profileDoc.state,
+      employeesCount:   profileDoc.employeesCount,
+      businessCategory: profileDoc.businessCategory,
+      pollutionCategory: profileDoc.pollutionCategory,
     } : null;
 
-    // Applications
-    const [allApps] = await db.execute(
-      "SELECT * FROM applications WHERE user_id = ? ORDER BY created_at DESC",
-      [req.user.id]
-    );
+    // Approvals / Applications
+    const allApps = await Approval.find({ userId: req.user.id }).sort({ createdAt: -1 }).lean();
+
     const activeApps = allApps.filter(
       a => a.status !== "APPROVED" && a.status !== "REJECTED"
     );
     const pendingActions = allApps.filter(
       a => a.status === "CLARIFICATION REQUIRED" || a.status === "INSPECTION REQUIRED"
     );
-    const recentApps = allApps.slice(0, 5).map(a => {
-      let docs = [];
-      if (a.documents_attached) {
-        if (Array.isArray(a.documents_attached)) docs = a.documents_attached;
-        else if (typeof a.documents_attached === "object") docs = Object.values(a.documents_attached);
-        else {
-          try { docs = JSON.parse(a.documents_attached); } catch (e) { docs = []; }
-        }
-      }
-      return {
-        id:         a.id,
-        title:      a.title,
-        department: a.department,
-        status:     a.status,
-        createdDate: a.created_date,
-        documentsAttached: docs,
-      };
-    });
+    const recentApps = allApps.slice(0, 5).map(a => ({
+      id:                a.id,
+      title:             a.title,
+      department:        a.department,
+      status:            a.status,
+      createdDate:       a.createdDate,
+      documentsAttached: a.documentsAttached || [],
+    }));
 
-    // Requirements count from profile
+    // Requirements count from dynamic rule engine
     let totalRequiredApprovals = 0;
-    if (profile) {
-      const { computeRequirements } = require("../catalog");
-      const appRows = allApps.map(a => ({ requirement_code: a.requirement_code, status: a.status }));
-      totalRequiredApprovals = computeRequirements(profile, appRows).length;
+    if (profileDoc) {
+      const requirements = await evaluateApprovalsForProfile(profileDoc, allApps);
+      totalRequiredApprovals = requirements.length;
     }
 
-    // Renewals
-    const [renewals] = await db.execute(
-      "SELECT * FROM renewals WHERE user_id = ?",
-      [req.user.id]
-    );
+    // Renewals / Compliance
+    const renewals = await ComplianceRequirement.find({ userId: req.user.id }).lean();
     const now = new Date();
     const upcomingRenewals = renewals.filter(r => {
-      const exp = new Date(r.expiry_date);
+      if (!r.expiryDate) return false;
+      const exp = new Date(r.expiryDate);
       const diffDays = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
       return diffDays <= 60;
     });
 
-    // Recent activity
-    const [actRows] = await db.execute(
-      "SELECT * FROM activity_log WHERE user_id = ? ORDER BY created_at DESC LIMIT 5",
-      [req.user.id]
-    );
+    // Recent activity log
+    const actRows = await AuditLog.find({ userId: req.user.id }).sort({ createdAt: -1 }).limit(5).lean();
     const recentActivities = actRows.map(a => ({
       id:        a.id,
       text:      a.text,
       module:    a.module,
-      timestamp: a.timestamp_label,
+      timestamp: a.timestampLabel,
     }));
 
     // Notifications
-    const [notifRows] = await db.execute(
-      "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 5",
-      [req.user.id]
-    );
+    const notifRows = await Notification.find({ userId: req.user.id }).sort({ createdAt: -1 }).limit(5).lean();
     const notifications = notifRows.map(n => ({
       id:      n.id,
       message: n.message,
       type:    n.type,
-      time:    n.time_label,
-      read:    !!n.is_read,
+      time:    n.timeLabel,
+      read:    !!n.isRead,
     }));
 
     res.json({
@@ -130,17 +111,13 @@ router.get("/", async (req, res) => {
 // GET /api/dashboard/notifications
 router.get("/notifications", async (req, res) => {
   try {
-    const db = await getPool();
-    const [rows] = await db.execute(
-      "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
-      [req.user.id]
-    );
+    const rows = await Notification.find({ userId: req.user.id }).sort({ createdAt: -1 }).limit(20).lean();
     res.json(rows.map(n => ({
       id:      n.id,
       message: n.message,
       type:    n.type,
-      time:    n.time_label,
-      read:    !!n.is_read,
+      time:    n.timeLabel,
+      read:    !!n.isRead,
     })));
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -150,11 +127,7 @@ router.get("/notifications", async (req, res) => {
 // POST /api/dashboard/notifications/mark-read
 router.post("/notifications/mark-read", async (req, res) => {
   try {
-    const db = await getPool();
-    await db.execute(
-      "UPDATE notifications SET is_read = 1 WHERE user_id = ?",
-      [req.user.id]
-    );
+    await Notification.updateMany({ userId: req.user.id }, { isRead: true });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

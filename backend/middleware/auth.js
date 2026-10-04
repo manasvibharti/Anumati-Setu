@@ -1,10 +1,11 @@
 /**
  * ============================================================================
- * AnumatiSetu — Auth Middleware
+ * AnumatiSetu — Auth Middleware (MongoDB / Mongoose)
  * ============================================================================
  */
 
-const { getPool } = require("../db");
+const User = require("../models/User");
+const { connectDB } = require("../db");
 
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -14,24 +15,19 @@ async function requireAuth(req, res, next) {
 
   const token = authHeader.split(" ")[1];
   try {
-    const db = await getPool();
-    const [sessions] = await db.execute(
-      `SELECT s.token, u.id, u.email, u.business_name
-       FROM sessions s
-       JOIN users u ON s.user_id = u.id
-       WHERE s.token = ?`,
-      [token]
-    );
+    await connectDB();
+    const user = await User.findOne({ "sessions.token": token });
 
-    if (sessions.length === 0) {
+    if (!user) {
       return res.status(401).json({ error: "Session expired or invalid. Please sign in again." });
     }
 
     req.user = {
-      id: sessions[0].id,
-      email: sessions[0].email,
-      businessName: sessions[0].business_name,
-      token: sessions[0].token,
+      id: user.id,
+      email: user.email,
+      businessName: user.businessName,
+      role: user.role,
+      token,
     };
 
     next();

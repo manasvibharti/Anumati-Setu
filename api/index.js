@@ -1,18 +1,30 @@
 /**
  * ============================================================================
- * AnumatiSetu — Vercel Serverless Function API Entrypoint
+ * AnumatiSetu — Vercel Serverless Function API Entrypoint (MongoDB / Mongoose)
  * ============================================================================
  */
 
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const { connectDB } = require("../backend/db");
 
 const app = express();
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Ensure DB is connected for serverless invocations
+app.use(async (_req, _res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("[Serverless DB Error]", err.message);
+    next(err);
+  }
+});
 
 // Serve uploaded files statically
 const UPLOAD_DIR = path.join(__dirname, "..", "backend", "uploads");
@@ -25,10 +37,11 @@ app.use("/api/applications", require("../backend/routes/applications"));
 app.use("/api/documents", require("../backend/routes/documents"));
 app.use("/api/renewals", require("../backend/routes/renewals"));
 app.use("/api/dashboard", require("../backend/routes/dashboard"));
+app.use("/api/schemes", require("../backend/routes/schemes"));
 app.use("/api/chat", require("../backend/routes/chat"));
 
 // Health check
-app.get("/api/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
+app.get("/api/health", (_req, res) => res.json({ status: "ok", database: "mongodb", timestamp: new Date().toISOString() }));
 
 // 404 handler for API
 app.use("/api/*", (_req, res) => {
