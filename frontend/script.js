@@ -347,14 +347,27 @@ const ApiService = {
     }
   },
 
+  async parseJson(res, defaultErrMsg = "Request failed") {
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || defaultErrMsg);
+      return data;
+    }
+    const text = await res.text();
+    if (res.status === 502 || res.status === 503 || res.status === 504 || text.includes("The page") || text.includes("starting")) {
+      throw new Error("Backend server is warming up. Please wait 15 seconds and try again.");
+    }
+    throw new Error(defaultErrMsg);
+  },
+
   async register(email, password, businessName) {
     const res = await this.apiFetch(`${API_BASE}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, businessName })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Registration failed");
+    const data = await this.parseJson(res, "Registration failed");
     this.setToken(data.token);
     return data;
   },
@@ -365,8 +378,7 @@ const ApiService = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Login failed");
+    const data = await this.parseJson(res, "Invalid email or password");
     this.setToken(data.token);
     return data;
   },

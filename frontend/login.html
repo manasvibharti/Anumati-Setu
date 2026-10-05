@@ -247,7 +247,14 @@ async function sendOtpCode() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    const data = await res.json();
+    const contentType = res.headers.get("content-type") || "";
+    let data;
+    if (contentType.includes("application/json")) {
+      data = await res.json();
+    } else {
+      const text = await res.text();
+      throw new Error("Backend server is warming up. Please wait 15 seconds and try again.");
+    }
     if (!res.ok) throw new Error(data.error || "Failed to send OTP");
 
     document.getElementById('otp-step-1').style.display = 'none';
@@ -294,7 +301,14 @@ async function handleOtpSubmit(e) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    const data = await res.json();
+    const contentType = res.headers.get("content-type") || "";
+    let data;
+    if (contentType.includes("application/json")) {
+      data = await res.json();
+    } else {
+      const text = await res.text();
+      throw new Error("Backend server is warming up. Please wait 15 seconds and try again.");
+    }
     if (!res.ok) throw new Error(data.error || "Invalid OTP code");
 
     ApiService.setToken(data.token);
