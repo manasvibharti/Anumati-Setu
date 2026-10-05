@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
   passwordHash: { type: String, required: true },
   businessName: { type: String, default: "" },
   role: { type: String, enum: ["user", "admin", "officer"], default: "user" },
+  department: { type: String, default: "ALL" },
   otp: {
     code: { type: String, default: null },
     expiresAt: { type: Date, default: null }

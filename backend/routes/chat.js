@@ -101,9 +101,9 @@ router.post("/query", async (req, res) => {
     // Step 3: Generate Grounded Answer using Gemini with Multi-Model Fallback Cascade
     if (aiClient) {
       const candidateModels = [
-        "gemini-2.5-flash-lite",
-        "gemini-3-flash-preview",
-        "gemini-flash-latest",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
         "gemini-2.5-pro"
       ];
 

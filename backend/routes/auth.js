@@ -284,7 +284,8 @@ router.post("/login", async (req, res) => {
         email: user.email,
         phone: user.phone,
         businessName: user.businessName,
-        role: user.role
+        role: user.role,
+        department: user.department || "ALL"
       },
       profile
     });
@@ -304,7 +305,8 @@ router.get("/me", requireAuth, async (req, res) => {
         id: req.user.id,
         email: req.user.email,
         businessName: req.user.businessName,
-        role: req.user.role
+        role: req.user.role,
+        department: req.user.department || "ALL"
       },
       profile: profile ? {
         ...profile,

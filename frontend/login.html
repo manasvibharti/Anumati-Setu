@@ -202,6 +202,17 @@ async function handlePasswordLogin(e) {
     if (typeof AlgoAccounts !== "undefined") {
       AlgoAccounts.registerActiveSession(data.user, data.token, data.profile);
     }
+    
+    if (data.user && (data.user.role === "admin" || data.user.role === "officer")) {
+      if (typeof AlgoUI !== "undefined") {
+        AlgoUI.showToast(`Signed in as ${data.user.businessName || 'Government Officer'}.`, "success");
+      }
+      setTimeout(() => {
+        window.location.href = 'admin.html';
+      }, 350);
+      return;
+    }
+
     if (typeof AlgoUI !== "undefined") {
       AlgoUI.showToast(`Welcome back, ${data.user.businessName || data.user.email}!`, "success");
     }

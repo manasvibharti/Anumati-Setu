@@ -27,6 +27,7 @@ async function requireAuth(req, res, next) {
       email: user.email,
       businessName: user.businessName,
       role: user.role,
+      department: user.department || "ALL",
       token,
     };
 
@@ -37,4 +38,14 @@ async function requireAuth(req, res, next) {
   }
 }
 
-module.exports = { requireAuth };
+function requireRole(allowedRoles) {
+  const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ error: `Access Denied: Requires ${roles.join(" or ")} privileges.` });
+    }
+    next();
+  };
+}
+
+module.exports = { requireAuth, requireRole };

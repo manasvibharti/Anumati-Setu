@@ -67,7 +67,7 @@ router.get("/:id", async (req, res) => {
 
 // POST /api/applications
 router.post("/", async (req, res) => {
-  const { requirementCode, notes } = req.body;
+  const { requirementCode, notes, status: requestedStatus, documentsAttached } = req.body;
   if (!requirementCode) return res.status(400).json({ error: "requirementCode is required" });
 
   const catalogItem = STATUTORY_CATALOG.find(r => r.code === requirementCode);
@@ -75,8 +75,31 @@ router.post("/", async (req, res) => {
 
   try {
     const existing = await Approval.findOne({ userId: req.user.id, requirementCode });
+    const targetStatus = (requestedStatus === "UNDER_SCRUTINY" || requestedStatus === "Under review" || requestedStatus === "SUBMITTED")
+      ? "SUBMITTED"
+      : (requestedStatus || "DRAFT");
+
+    const stringDocs = Array.isArray(documentsAttached) 
+      ? documentsAttached.map(d => typeof d === 'string' ? d : `${d.name || d.title || 'Document'} (${d.fileName || d.name || 'file'}) [${d.docRef || 'REF'}]`)
+      : [];
+
     if (existing) {
-      return res.status(409).json({ error: "Application already exists for this requirement", existingId: existing.id });
+      existing.status = targetStatus;
+      if (notes) existing.notes = notes;
+      if (stringDocs.length > 0) {
+        existing.documentsAttached = stringDocs;
+      }
+      if (Array.isArray(documentsAttached)) {
+        existing.submittedPacket = {
+          submittedAt: new Date().toISOString(),
+          documents: documentsAttached
+        };
+      }
+      await existing.save();
+
+      await logActivity(req.user.id, `Application ${existing.id} (${catalogItem.title}) updated to ${targetStatus}`, "Application");
+      await addNotification(req.user.id, `Application for ${catalogItem.title} is now under departmental scrutiny.`, "info");
+      return res.json(parseApp(existing));
     }
 
     // Resolve state-specific department name
@@ -100,15 +123,24 @@ router.post("/", async (req, res) => {
       title: catalogItem.title,
       department: resolvedDept,
       category: catalogItem.category || "General Business",
-      status: "DRAFT",
+      status: targetStatus,
+      submittedDate: targetStatus === "SUBMITTED" ? today : null,
       createdDate: today,
       inspectionRequired: !!catalogItem.inspectionRequired,
       notes: notes || "",
-      documentsAttached: []
+      documentsAttached: stringDocs,
+      submittedPacket: Array.isArray(documentsAttached) ? {
+        submittedAt: new Date().toISOString(),
+        documents: documentsAttached
+      } : null
     });
 
-    await logActivity(req.user.id, `Draft application created: ${catalogItem.title} (${newId})`, "Application");
-    await addNotification(req.user.id, `Draft created for ${catalogItem.title}`, "info");
+    await logActivity(req.user.id, `Application created: ${catalogItem.title} (${newId}) - Status: ${targetStatus}`, "Application");
+    if (targetStatus === "UNDER_SCRUTINY" || targetStatus === "SUBMITTED") {
+      await addNotification(req.user.id, `Application for ${catalogItem.title} (${newId}) submitted and queued for departmental scrutiny.`, "success");
+    } else {
+      await addNotification(req.user.id, `Draft created for ${catalogItem.title}`, "info");
+    }
 
     res.status(201).json(parseApp(newApp));
   } catch (err) {

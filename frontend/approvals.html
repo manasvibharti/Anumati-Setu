@@ -756,7 +756,7 @@
   <div class="main">
     <div class="topbar">
       <div class="tb-right">
-        <div class="tb-bell"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280"
+        <div class="tb-bell" onclick="openNotificationsModal(this)" title="Statutory Notifications & Alerts"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280"
             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -1478,6 +1478,81 @@
           AlgoUI.showToast("Filtered by: " + pill.textContent.trim(), "info");
         });
       });
+
+      // Cross-check Document Vault for automatic checklist reuse without collision (§9 & §10)
+      if (typeof window.getVaultMatchingDoc === "function") {
+        const activeAcc = (typeof AlgoAccounts !== "undefined") ? AlgoAccounts.getActiveAccount() : null;
+        const submittedClearances = (activeAcc && activeAcc.clearances) || {};
+        const applicationsList = (activeAcc && activeAcc.applications) || [];
+
+        document.querySelectorAll(".approval-card").forEach(card => {
+          const docItems = card.querySelectorAll(".doc-item");
+          const cardConsumedRefs = new Set();
+
+          docItems.forEach(item => {
+            const label = item.textContent.trim();
+            const matchedDoc = window.getVaultMatchingDoc(label, Array.from(cardConsumedRefs));
+            if (matchedDoc) {
+              cardConsumedRefs.add(matchedDoc.ref || matchedDoc.id || matchedDoc.name);
+              item.innerHTML = `
+                <div class="doc-check" style="background:#10b981; color:#fff; font-size:0.68rem; font-weight:800; width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center;">✓</div>
+                <div style="flex:1; display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+                  <span style="font-weight:600; color:#1e293b;">${label}</span>
+                  <span style="font-size:0.7rem; font-weight:700; background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; padding:0.15rem 0.45rem; border-radius:12px;">
+                    ✓ Attached from Vault
+                  </span>
+                </div>
+              `;
+            }
+          });
+
+          // Check if clearance is already submitted, under scrutiny, or approved
+          const startBtn = card.querySelector(".btn-start");
+          const btnAttr = startBtn ? (startBtn.getAttribute("onclick") || "") : "";
+          const reqCodeMatch = btnAttr.match(/'(REQ_[^']+)'/);
+          const reqCode = reqCodeMatch ? reqCodeMatch[1] : null;
+
+          const isSubmitted = (reqCode && submittedClearances[reqCode]) || 
+                              applicationsList.some(a => (reqCode && a.ref && a.ref.includes(reqCode.replace('REQ_', '').substring(0,3))) || (a.title && card.querySelector(".approval-name")?.textContent?.includes(a.title)));
+
+          if (isSubmitted && startBtn && reqCode) {
+            const appRef = (submittedClearances[reqCode] && submittedClearances[reqCode].ref) || 'SETU/SUBMITTED';
+            const badge = card.querySelector(".approval-status-badge");
+            if (badge) {
+              badge.className = "approval-status-badge badge-progress";
+              badge.style.background = "#ecfdf5";
+              badge.style.color = "#059669";
+              badge.style.borderColor = "#a7f3d0";
+              badge.textContent = "● In Progress (Under Scrutiny)";
+            }
+            const startRow = card.querySelector(".start-row");
+            if (startRow) {
+              startRow.innerHTML = `
+                <div style="width:100%; background:#ecfdf5; border:1.5px solid #a7f3d0; border-radius:8px; padding:0.85rem 1rem; color:#065f46; font-size:0.82rem; font-weight:700; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+                  <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span>🔒</span>
+                    <span>Application Registered (${appRef}) — Under Active Scrutiny (Submission Packet Frozen)</span>
+                  </div>
+                  <a href="applications.html" style="color:#0d7a6b; font-weight:700; text-decoration:none; background:#ffffff; padding:0.3rem 0.75rem; border-radius:6px; border:1px solid #99f6e4;">Track Status →</a>
+                </div>
+              `;
+            }
+          }
+
+          const statusBadge = card.querySelector(".approval-status-badge");
+          const statusText = statusBadge?.textContent?.toLowerCase() || '';
+          if (statusText.includes("obtained") || statusText.includes("approved") || statusText.includes("verified")) {
+            const body = card.querySelector(".approval-body");
+            if (body && !body.querySelector(".locked-banner")) {
+              const banner = document.createElement("div");
+              banner.className = "locked-banner";
+              banner.style.cssText = "grid-column:1/-1; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:0.75rem 1rem; color:#065f46; font-size:0.82rem; font-weight:700; display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem;";
+              banner.innerHTML = "<span>🔒</span> Statutory Clearance Active (Submission Packet Frozen — Re-uploading not permitted).";
+              body.appendChild(banner);
+            }
+          }
+        });
+      }
     });
   </script>
   <script src="script.js?v=4.1"></script>

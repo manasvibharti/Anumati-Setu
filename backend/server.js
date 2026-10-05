@@ -53,6 +53,7 @@ app.use("/api/renewals", require("./routes/renewals"));
 app.use("/api/dashboard", require("./routes/dashboard"));
 app.use("/api/schemes", require("./routes/schemes"));
 app.use("/api/chat", require("./routes/chat"));
+app.use("/api/admin", require("./routes/admin"));
 
 // Health check
 app.get("/api/health", (_req, res) => res.json({ status: "ok", database: "mongodb", timestamp: new Date().toISOString() }));
